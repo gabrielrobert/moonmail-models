@@ -2,7 +2,7 @@
   "name": "moonmail-models",
   "version": "1.0.0",
   "description": "Acts as the MoonMail data persistance layer",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
     "test": "mocha --require babel-register $(find ./tests/ -name '*.test.js')"
   },
