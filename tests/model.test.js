@@ -1,4 +1,3 @@
-
 import * as chai from 'chai';
 const expect = chai.expect;
 const chaiAsPromised = require('chai-as-promised');
