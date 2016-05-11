@@ -1,13 +1,12 @@
 
 import * as chai from 'chai';
 const expect = chai.expect;
-import { Model } from '../lib/models/model';
+const chaiAsPromised = require('chai-as-promised');
 const awsMock = require('aws-sdk-mock');
 const AWS = require('aws-sdk');
 import * as sinon from 'sinon';
-// import * as sinonAsPromised from 'sinon-as-promised';
-const chaiAsPromised = require('chai-as-promised');
-// const chaiThings = require('chai-things');
+import * as sinonAsPromised from 'sinon-as-promised';
+import { Model } from '../lib/models/model';
 
 chai.use(chaiAsPromised);
 
@@ -44,6 +43,62 @@ describe('Model', () => {
         const clientPromise = Model._client('put', {});
         expect(clientPromise).to.be.rejected.and.notify(done);
       });
+    });
+  });
+
+  context('stub client', () => {
+    const tableName = 'my-table';
+    let tNameStub;
+
+    before(() => {
+      sinon.stub(Model, '_client').resolves(true);
+      tNameStub = sinon.stub(Model, 'tableName', { get: () => tableName});
+    });
+
+    describe('#get', () => {
+      it('calls the DynamoDB get method with correct params', (done) => {
+        const key = 'key';
+        Model.get(key).then(() => {
+          const args = Model._client.lastCall.args;
+          expect(args[0]).to.equal('get');
+          expect(args[1]).to.have.property('TableName', tableName);
+          expect(args[1]).to.have.deep.property('Key.id', key);
+          done();
+        });
+      });
+    });
+
+    describe('#allBy', () => {
+      it('calls the DynamoDB query method with correct params', (done) => {
+        const key = 'key';
+        const value = 'value';
+        Model.allBy(key).then(() => {
+          const args = Model._client.lastCall.args;
+          expect(args[0]).to.equal('query');
+          expect(args[1]).to.have.property('TableName', tableName);
+          expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
+          expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
+          done();
+        });
+      });
+    });
+
+    describe('#save', () => {
+      it('calls the DynamoDB put method with correct params', (done) => {
+        const params = {id: 'key'};
+        Model.save(params).then(() => {
+          const args = Model._client.lastCall.args;
+          expect(args[0]).to.equal('put');
+          expect(args[1]).to.have.property('TableName', tableName);
+          expect(args[1]).to.have.property('Item', params);
+          done();
+        });
+      });
+    });
+
+    after(() => {
+      Model._client.restore();
+      tNameStub.restore();
     });
   });
 
