@@ -37,6 +37,10 @@ class Model {
     });
   }
 
+  static update(params, key, range) {
+
+  }
+
   static allBy(key, value, options = {}) {
     return new Promise((resolve, reject) => {
       debug('= Model.allBy', key, value);
@@ -93,6 +97,17 @@ class Model {
       key[this.rangeKey] = range;
     }
     return key;
+  }
+
+  static _buildAttributeUpdates(params) {
+    let attrUpdates = {};
+    for (let key in params ) {
+      attrUpdates[key] = {
+        Action: 'PUT',
+        Value: params[key]
+      };
+    }
+    return attrUpdates;
   }
 
   static _client(method, params) {

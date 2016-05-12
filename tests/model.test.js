@@ -146,6 +146,17 @@ describe('Model', () => {
     });
   });
 
+  describe('#_buildAttributeUpdates()', () => {
+    it('returns a correct AttributeUpdates object', () => {
+      const params = {someAttribute: 'some value', anotherAttribute: 'another value'};
+      const attributeUpdates = Model._buildAttributeUpdates(params);
+      for (let key in params) {
+        expect(attributeUpdates).to.have.deep.property(`${key}.Action`, 'PUT');
+        expect(attributeUpdates).to.have.deep.property(`${key}.Value`, params[key]);
+      }
+    });
+  });
+
   after(() => {
     awsMock.restore('DynamoDB.DocumentClient');
   });
