@@ -1,2 +1,2 @@
-export * from 'models/link';
-export * from 'models/campaign';
+export * from './models/link';
+export * from './models/campaign';
