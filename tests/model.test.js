@@ -51,12 +51,17 @@ describe('Model', () => {
     const rangeKey = 'myRange';
     const hashValue = 'some hash value';
     const rangeValue = 'some range value';
+    const lastEvaluatedKey = {id: '1234', rangeKey: '654'};
+    const nextPage = new Buffer(JSON.stringify(lastEvaluatedKey)).toString('base64');
     let tNameStub;
     let hashStub;
     let rangeStub;
+    let clientStub;
 
     before(() => {
-      sinon.stub(Model, '_client').resolves(true);
+      clientStub = sinon.stub(Model, '_client');
+      clientStub.resolves('ok');
+      clientStub.withArgs('query').resolves({Items: [], LastEvaluatedKey: lastEvaluatedKey});
       tNameStub = sinon.stub(Model, 'tableName', { get: () => tableName});
       hashStub = sinon.stub(Model, 'hashKey', { get: () => hashKey});
       rangeStub = sinon.stub(Model, 'rangeKey', { get: () => rangeKey});
@@ -84,23 +89,35 @@ describe('Model', () => {
             expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
             expect(args[1]).to.have.deep.property(`Key.${rangeKey}`, rangeValue);
             done();
-          })
-          .catch(err => console.log(err));
+          });
         });
       });
     });
 
     describe('#allBy', () => {
+      const key = 'key';
+      const value = 'value';
+
       it('calls the DynamoDB query method with correct params', (done) => {
-        const key = 'key';
-        const value = 'value';
-        Model.allBy(key).then(() => {
+        Model.allBy(key, value).then((result) => {
           const args = Model._client.lastCall.args;
           expect(args[0]).to.equal('query');
           expect(args[1]).to.have.property('TableName', tableName);
           expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
           expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
+          expect(result).to.have.property('Items');
+          expect(result).to.have.property('nextPage', nextPage);
           done();
+        });
+      });
+
+      context('when the nexPage param was provided', () => {
+        it('includes the ExclusiveStartKey in the query', (done) => {
+          Model.allBy(key, value, {nextPage}).then(() => {
+            const args = Model._client.lastCall.args;
+            expect(args[1].ExclusiveStartKey).to.deep.equal(lastEvaluatedKey);
+            done();
+          });
         });
       });
     });

@@ -32,15 +32,41 @@ class Model {
     return this._client('get', params);
   }
 
-  static allBy(key, value) {
-    debug('= Model.allBy', key, value);
-    const params = {
-      TableName: this.tableName,
-      KeyConditionExpression: '#hkey = :hvalue',
-      ExpressionAttributeNames: {'#hkey': key},
-      ExpressionAttributeValues: {':hvalue': value}
-    };
-    return this._client('query', params);
+  static allBy(key, value, options = {}) {
+    return new Promise((resolve, reject) => {
+      debug('= Model.allBy', key, value);
+      const params = {
+        TableName: this.tableName,
+        KeyConditionExpression: '#hkey = :hvalue',
+        ExpressionAttributeNames: {'#hkey': key},
+        ExpressionAttributeValues: {':hvalue': value}
+      };
+      if (options.limit) {
+        params.Limit = options.limit;
+      }
+      if (options.nextPage) {
+        params.ExclusiveStartKey = this.lastEvaluatedKey(options.nextPage);
+      }
+      this._client('query', params).then((result) => {
+        if (result.LastEvaluatedKey) {
+          resolve({
+            Items: result.Items,
+            nextPage: this.nextPage(result.LastEvaluatedKey)
+          });
+        } else {
+          resolve({Items: result.Items});
+        }
+      })
+      .catch(err => reject(err));
+    });
+  }
+
+  static nextPage(lastEvaluatedKey) {
+    return new Buffer(JSON.stringify(lastEvaluatedKey)).toString('base64');
+  }
+
+  static lastEvaluatedKey(nextPage) {
+    return JSON.parse(new Buffer(nextPage, 'base64').toString('utf-8'));
   }
 
   static get tableName() {
