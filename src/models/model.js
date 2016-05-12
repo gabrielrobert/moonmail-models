@@ -20,16 +20,25 @@ class Model {
   }
 
   static get(key, range) {
-    debug('= Model.get', key);
-    const params = {
-      TableName: this.tableName,
-      Key: {}
-    };
-    params.Key[this.hashKey] = key;
-    if (range) {
-      params.Key[this.rangeKey] = range;
-    }
-    return this._client('get', params);
+    return new Promise((resolve, reject) => {
+      debug('= Model.get', key);
+      const params = {
+        TableName: this.tableName,
+        Key: {}
+      };
+      params.Key[this.hashKey] = key;
+      if (range) {
+        params.Key[this.rangeKey] = range;
+      }
+      this._client('get', params).then(result => {
+        if (result.Item) {
+          resolve(result.Item);
+        } else {
+          resolve({});
+        }
+      })
+      .catch(err => reject(err));
+    });
   }
 
   static allBy(key, value, options = {}) {

@@ -53,6 +53,7 @@ describe('Model', () => {
     const rangeValue = 'some range value';
     const lastEvaluatedKey = {id: '1234', rangeKey: '654'};
     const nextPage = new Buffer(JSON.stringify(lastEvaluatedKey)).toString('base64');
+    const item = {some_key: 'some_value'};
     let tNameStub;
     let hashStub;
     let rangeStub;
@@ -62,6 +63,7 @@ describe('Model', () => {
       clientStub = sinon.stub(Model, '_client');
       clientStub.resolves('ok');
       clientStub.withArgs('query').resolves({Items: [], LastEvaluatedKey: lastEvaluatedKey});
+      clientStub.withArgs('get').resolves({Item: item});
       tNameStub = sinon.stub(Model, 'tableName', { get: () => tableName});
       hashStub = sinon.stub(Model, 'hashKey', { get: () => hashKey});
       rangeStub = sinon.stub(Model, 'rangeKey', { get: () => rangeKey});
@@ -70,11 +72,12 @@ describe('Model', () => {
     describe('#get', () => {
       context('only hash key was provided', () => {
         it('calls the DynamoDB get method with correct params', (done) => {
-          Model.get(hashValue).then(() => {
+          Model.get(hashValue).then((result) => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('get');
             expect(args[1]).to.have.property('TableName', tableName);
             expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
+            expect(result).to.deep.equal(item);
             done();
           });
         });
