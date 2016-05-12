@@ -24,12 +24,8 @@ class Model {
       debug('= Model.get', key);
       const params = {
         TableName: this.tableName,
-        Key: {}
+        Key: this._buildKey(key, range)
       };
-      params.Key[this.hashKey] = key;
-      if (range) {
-        params.Key[this.rangeKey] = range;
-      }
       this._client('get', params).then(result => {
         if (result.Item) {
           resolve(result.Item);
@@ -88,6 +84,15 @@ class Model {
 
   static get rangeKey() {
     return null;
+  }
+
+  static _buildKey(hash, range) {
+    let key = {};
+    key[this.hashKey] = hash;
+    if (this.rangeKey) {
+      key[this.rangeKey] = range;
+    }
+    return key;
   }
 
   static _client(method, params) {
