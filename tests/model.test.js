@@ -47,22 +47,45 @@ describe('Model', () => {
 
   context('stub client', () => {
     const tableName = 'my-table';
+    const hashKey = 'myKey';
+    const rangeKey = 'myRange';
+    const hashValue = 'some hash value';
+    const rangeValue = 'some range value';
     let tNameStub;
+    let hashStub;
+    let rangeStub;
 
     before(() => {
       sinon.stub(Model, '_client').resolves(true);
       tNameStub = sinon.stub(Model, 'tableName', { get: () => tableName});
+      hashStub = sinon.stub(Model, 'hashKey', { get: () => hashKey});
+      rangeStub = sinon.stub(Model, 'rangeKey', { get: () => rangeKey});
     });
 
     describe('#get', () => {
-      it('calls the DynamoDB get method with correct params', (done) => {
-        const key = 'key';
-        Model.get(key).then(() => {
-          const args = Model._client.lastCall.args;
-          expect(args[0]).to.equal('get');
-          expect(args[1]).to.have.property('TableName', tableName);
-          expect(args[1]).to.have.deep.property('Key.id', key);
-          done();
+      context('only hash key was provided', () => {
+        it('calls the DynamoDB get method with correct params', (done) => {
+          Model.get(hashValue).then(() => {
+            const args = Model._client.lastCall.args;
+            expect(args[0]).to.equal('get');
+            expect(args[1]).to.have.property('TableName', tableName);
+            expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
+            done();
+          });
+        });
+      });
+
+      context('range key was provided', () => {
+        it('calls the DynamoDB get method with correct params', (done) => {
+          Model.get(hashValue, rangeValue).then(() => {
+            const args = Model._client.lastCall.args;
+            expect(args[0]).to.equal('get');
+            expect(args[1]).to.have.property('TableName', tableName);
+            expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
+            expect(args[1]).to.have.deep.property(`Key.${rangeKey}`, rangeValue);
+            done();
+          })
+          .catch(err => console.log(err));
         });
       });
     });
@@ -98,6 +121,8 @@ describe('Model', () => {
     after(() => {
       Model._client.restore();
       tNameStub.restore();
+      hashStub.restore();
+      rangeStub.restore();
     });
   });
 
