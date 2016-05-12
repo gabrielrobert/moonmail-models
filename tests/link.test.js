@@ -3,7 +3,7 @@ const expect = chai.expect;
 const chaiAsPromised = require('chai-as-promised');
 import * as sinon from 'sinon';
 import * as sinonAsPromised from 'sinon-as-promised';
-import { Link } from '../lib/models/link';
+import { Link } from '../src/models/link';
 
 chai.use(chaiAsPromised);
 

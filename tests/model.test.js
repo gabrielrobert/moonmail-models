@@ -5,7 +5,7 @@ const awsMock = require('aws-sdk-mock');
 const AWS = require('aws-sdk');
 import * as sinon from 'sinon';
 import * as sinonAsPromised from 'sinon-as-promised';
-import { Model } from '../lib/models/model';
+import { Model } from '../src/models/model';
 
 chai.use(chaiAsPromised);
 
