@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Acts as the MoonMail data persistance layer",
   "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microapps/moonmail-models.git"
+  },
   "scripts": {
     "gulp": "gulp",
     "test": "mocha --require babel-register $(find ./tests/ -name '*.test.js')"
