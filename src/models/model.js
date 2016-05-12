@@ -19,14 +19,16 @@ class Model {
     return this._client('put', itemParams);
   }
 
-  static get(key) {
+  static get(key, range) {
     debug('= Model.get', key);
     const params = {
       TableName: this.tableName,
-      Key: {
-        id: key
-      }
+      Key: {}
     };
+    params.Key[this.hashKey] = key;
+    if (range) {
+      params.Key[this.rangeKey] = range;
+    }
     return this._client('get', params);
   }
 
@@ -42,6 +44,14 @@ class Model {
   }
 
   static get tableName() {
+    return null;
+  }
+
+  static get hashKey() {
+    return 'id';
+  }
+
+  static get rangeKey() {
     return null;
   }
 
