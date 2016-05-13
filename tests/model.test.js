@@ -148,6 +148,18 @@ describe('Model', () => {
           expect(args[1]).to.have.property('Key');
           expect(args[1].AttributeUpdates).to.deep.equal(Model._buildAttributeUpdates(params));
           done();
+        });
+      });
+    });
+
+    describe('#delete', () => {
+      it('calls the DynamoDB delete method with correct params', (done) => {
+        Model.delete(hashValue, rangeValue).then(() => {
+          const args = Model._client.lastCall.args;
+          expect(args[0]).to.equal('delete');
+          expect(args[1]).to.have.property('TableName');
+          expect(args[1].Key).to.deep.equal(Model._buildKey(hashValue, rangeValue));
+          done();
         })
         .catch(err => console.log(err));
       });

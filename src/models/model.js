@@ -19,12 +19,12 @@ class Model {
     return this._client('put', itemParams);
   }
 
-  static get(key, range) {
+  static get(hash, range) {
     return new Promise((resolve, reject) => {
-      debug('= Model.get', key);
+      debug('= Model.get', hash, range);
       const params = {
         TableName: this.tableName,
-        Key: this._buildKey(key, range)
+        Key: this._buildKey(hash, range)
       };
       this._client('get', params).then(result => {
         if (result.Item) {
@@ -37,16 +37,28 @@ class Model {
     });
   }
 
-  static update(params, key, range) {
+  static update(params, hash, range) {
     return new Promise((resolve, reject) => {
-      debug('= Model.update', key);
+      debug('= Model.update', hash, range, JSON.stringify(params));
       const dbParams = {
         TableName: this.tableName,
-        Key: this._buildKey(key, range),
+        Key: this._buildKey(hash, range),
         AttributeUpdates: this._buildAttributeUpdates(params),
         ReturnValues: 'ALL_NEW'
       };
       this._client('update', dbParams).then(result => resolve(result.Attributes))
+      .catch(err => reject(err));
+    });
+  }
+
+  static delete(hash, range) {
+    return new Promise((resolve, reject) => {
+      debug('= Model.delete', hash);
+      const params = {
+        TableName: this.tableName,
+        Key: this._buildKey(hash, range)
+      };
+      this._client('delete', params).then(() => resolve(true))
       .catch(err => reject(err));
     });
   }
