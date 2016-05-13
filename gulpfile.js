@@ -6,8 +6,8 @@ var SRC_PATH = './src',
   LIB_PATH = './lib';
 
 gulp.task('clear', function(cb) {
-  del([LIB_PATH + '/*'], function() {
-    cb();
+  del([LIB_PATH + '/*'], function(err) {
+    cb(err);
   });
 });
 
