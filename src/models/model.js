@@ -38,7 +38,17 @@ class Model {
   }
 
   static update(params, key, range) {
-
+    return new Promise((resolve, reject) => {
+      debug('= Model.update', key);
+      const dbParams = {
+        TableName: this.tableName,
+        Key: this._buildKey(key, range),
+        AttributeUpdates: this._buildAttributeUpdates(params),
+        ReturnValues: 'ALL_NEW'
+      };
+      this._client('update', dbParams).then(result => resolve(result.Attributes))
+      .catch(err => reject(err));
+    });
   }
 
   static allBy(key, value, options = {}) {
@@ -101,11 +111,13 @@ class Model {
 
   static _buildAttributeUpdates(params) {
     let attrUpdates = {};
-    for (let key in params ) {
-      attrUpdates[key] = {
-        Action: 'PUT',
-        Value: params[key]
-      };
+    for (let key in params) {
+      if (key !== this.hashKey && key !== this.rangeKey) {
+        attrUpdates[key] = {
+          Action: 'PUT',
+          Value: params[key]
+        };
+      }
     }
     return attrUpdates;
   }

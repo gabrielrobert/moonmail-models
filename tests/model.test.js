@@ -138,6 +138,21 @@ describe('Model', () => {
       });
     });
 
+    describe('#update', () => {
+      it('calls the DynamoDB update method with correct params', (done) => {
+        const params = {att: 'value', att2: 'value 2'};
+        Model.update(params, hashValue, rangeValue).then(() => {
+          const args = Model._client.lastCall.args;
+          expect(args[0]).to.equal('update');
+          expect(args[1]).to.have.property('TableName');
+          expect(args[1]).to.have.property('Key');
+          expect(args[1].AttributeUpdates).to.deep.equal(Model._buildAttributeUpdates(params));
+          done();
+        })
+        .catch(err => console.log(err));
+      });
+    });
+
     after(() => {
       Model._client.restore();
       tNameStub.restore();
@@ -148,11 +163,17 @@ describe('Model', () => {
 
   describe('#_buildAttributeUpdates()', () => {
     it('returns a correct AttributeUpdates object', () => {
-      const params = {someAttribute: 'some value', anotherAttribute: 'another value'};
+      let params = {someAttribute: 'some value', anotherAttribute: 'another value'};
+      params[Model.hashKey] = 'some value';
+      params[Model.rangeKey] = 'some value';
       const attributeUpdates = Model._buildAttributeUpdates(params);
       for (let key in params) {
-        expect(attributeUpdates).to.have.deep.property(`${key}.Action`, 'PUT');
-        expect(attributeUpdates).to.have.deep.property(`${key}.Value`, params[key]);
+        if (key === Model.hashKey || key === Model.rangeKey) {
+          expect(attributeUpdates).not.to.have.property(key);
+        } else {
+          expect(attributeUpdates).to.have.deep.property(`${key}.Action`, 'PUT');
+          expect(attributeUpdates).to.have.deep.property(`${key}.Value`, params[key]);
+        }
       }
     });
   });
