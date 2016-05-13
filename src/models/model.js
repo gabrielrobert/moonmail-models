@@ -20,27 +20,72 @@ class Model {
   }
 
   static get(key, range) {
-    debug('= Model.get', key);
-    const params = {
-      TableName: this.tableName,
-      Key: {}
-    };
-    params.Key[this.hashKey] = key;
-    if (range) {
-      params.Key[this.rangeKey] = range;
-    }
-    return this._client('get', params);
+    return new Promise((resolve, reject) => {
+      debug('= Model.get', key);
+      const params = {
+        TableName: this.tableName,
+        Key: this._buildKey(key, range)
+      };
+      this._client('get', params).then(result => {
+        if (result.Item) {
+          resolve(result.Item);
+        } else {
+          resolve({});
+        }
+      })
+      .catch(err => reject(err));
+    });
   }
 
-  static allBy(key, value) {
-    debug('= Model.allBy', key, value);
-    const params = {
-      TableName: this.tableName,
-      KeyConditionExpression: '#hkey = :hvalue',
-      ExpressionAttributeNames: {'#hkey': key},
-      ExpressionAttributeValues: {':hvalue': value}
-    };
-    return this._client('query', params);
+  static update(params, key, range) {
+    return new Promise((resolve, reject) => {
+      debug('= Model.update', key);
+      const dbParams = {
+        TableName: this.tableName,
+        Key: this._buildKey(key, range),
+        AttributeUpdates: this._buildAttributeUpdates(params),
+        ReturnValues: 'ALL_NEW'
+      };
+      this._client('update', dbParams).then(result => resolve(result.Attributes))
+      .catch(err => reject(err));
+    });
+  }
+
+  static allBy(key, value, options = {}) {
+    return new Promise((resolve, reject) => {
+      debug('= Model.allBy', key, value);
+      const params = {
+        TableName: this.tableName,
+        KeyConditionExpression: '#hkey = :hvalue',
+        ExpressionAttributeNames: {'#hkey': key},
+        ExpressionAttributeValues: {':hvalue': value}
+      };
+      if (options.limit) {
+        params.Limit = options.limit;
+      }
+      if (options.nextPage) {
+        params.ExclusiveStartKey = this.lastEvaluatedKey(options.nextPage);
+      }
+      this._client('query', params).then((result) => {
+        if (result.LastEvaluatedKey) {
+          resolve({
+            Items: result.Items,
+            nextPage: this.nextPage(result.LastEvaluatedKey)
+          });
+        } else {
+          resolve({Items: result.Items});
+        }
+      })
+      .catch(err => reject(err));
+    });
+  }
+
+  static nextPage(lastEvaluatedKey) {
+    return new Buffer(JSON.stringify(lastEvaluatedKey)).toString('base64');
+  }
+
+  static lastEvaluatedKey(nextPage) {
+    return JSON.parse(new Buffer(nextPage, 'base64').toString('utf-8'));
   }
 
   static get tableName() {
@@ -53,6 +98,28 @@ class Model {
 
   static get rangeKey() {
     return null;
+  }
+
+  static _buildKey(hash, range) {
+    let key = {};
+    key[this.hashKey] = hash;
+    if (this.rangeKey) {
+      key[this.rangeKey] = range;
+    }
+    return key;
+  }
+
+  static _buildAttributeUpdates(params) {
+    let attrUpdates = {};
+    for (let key in params) {
+      if (key !== this.hashKey && key !== this.rangeKey) {
+        attrUpdates[key] = {
+          Action: 'PUT',
+          Value: params[key]
+        };
+      }
+    }
+    return attrUpdates;
   }
 
   static _client(method, params) {
