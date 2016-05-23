@@ -92,6 +92,20 @@ class Model {
     });
   }
 
+  static increment(hash, range, attribute, count = 1) {
+    debug('= Model.increment', hash, range, attribute, count);
+    const params = {
+      TableName: this.tableName,
+      Key: this._buildKey(hash, range),
+      AttributeUpdates: {}
+    };
+    params.AttributeUpdates[attribute] = {
+      Action: 'ADD',
+      Value: count
+    };
+    return this._client('update', params);
+  }
+
   static nextPage(lastEvaluatedKey) {
     return new Buffer(JSON.stringify(lastEvaluatedKey)).toString('base64');
   }

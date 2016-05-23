@@ -152,6 +152,22 @@ describe('Model', () => {
       });
     });
 
+    describe('#increment', () => {
+      it('calls the DynamoDB update method with correct params', (done) => {
+        const count = 2;
+        const countAttribute = 'someCount';
+        Model.increment(hashValue, rangeValue, countAttribute, count).then(() => {
+          const args = Model._client.lastCall.args;
+          expect(args[0]).to.equal('update');
+          expect(args[1]).to.have.property('TableName');
+          expect(args[1]).to.have.property('Key');
+          expect(args[1]).to.have.deep.property(`AttributeUpdates.${countAttribute}.Action`, 'ADD');
+          expect(args[1]).to.have.deep.property(`AttributeUpdates.${countAttribute}.Value`, count);
+          done();
+        });
+      });
+    });
+
     describe('#delete', () => {
       it('calls the DynamoDB delete method with correct params', (done) => {
         Model.delete(hashValue, rangeValue).then(() => {

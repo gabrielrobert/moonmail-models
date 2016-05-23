@@ -8,7 +8,6 @@ import { Campaign } from '../src/models/campaign';
 chai.use(chaiAsPromised);
 
 describe('Campaign', () => {
-
   const tableName = 'Campaigns-table';
   const campaignId = 'campaignId';
   const userId = 'thatUserId';
@@ -37,18 +36,17 @@ describe('Campaign', () => {
   describe('#hashKey', () => {
     it('returns the hash key name', () => {
       expect(Campaign.hashKey).to.equal(campaignHashKey);
-    })
+    });
   });
 
   describe('#rangeKey', () => {
     it('returns the range key name', () => {
       expect(Campaign.rangeKey).to.equal(campaignRangeKey);
-    })
+    });
   });
 
   after(() => {
     Campaign._client.restore();
     tNameStub.restore();
   });
-
 });
