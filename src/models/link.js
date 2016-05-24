@@ -20,19 +20,7 @@ class Link extends Model {
 
   static incrementOpens(campaignId, count = 1) {
     debug('= Link.incrementOpens', campaignId, count);
-    const addParams = {
-      Key: {
-        id: campaignId
-      },
-      TableName: this.tableName,
-      AttributeUpdates: {
-        opensCount: {
-          Action: 'ADD',
-          Value: count
-        }
-      }
-    };
-    return this._client('update', addParams);
+    return this.increment('opensCount', count, campaignId);
   }
 
   static incrementClicks(campaignId, linkId, count = 1) {

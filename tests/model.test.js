@@ -156,7 +156,7 @@ describe('Model', () => {
       it('calls the DynamoDB update method with correct params', (done) => {
         const count = 2;
         const countAttribute = 'someCount';
-        Model.increment(hashValue, rangeValue, countAttribute, count).then(() => {
+        Model.increment(countAttribute, count, hashValue, rangeValue).then(() => {
           const args = Model._client.lastCall.args;
           expect(args[0]).to.equal('update');
           expect(args[1]).to.have.property('TableName');

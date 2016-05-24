@@ -92,7 +92,7 @@ class Model {
     });
   }
 
-  static increment(hash, range, attribute, count = 1) {
+  static increment(attribute, count, hash, range) {
     debug('= Model.increment', hash, range, attribute, count);
     const params = {
       TableName: this.tableName,
