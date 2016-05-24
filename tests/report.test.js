@@ -52,8 +52,7 @@ describe('Report', () => {
         expect(args[1]).to.have.deep.property('AttributeUpdates.bouncesCount.Action', 'ADD');
         expect(args[1]).to.have.deep.property('AttributeUpdates.bouncesCount.Value', 1);
         done();
-      })
-      .catch(err => console.log(err));
+      });
     });
   });
 
