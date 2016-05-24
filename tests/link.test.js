@@ -54,5 +54,4 @@ describe('Link', () => {
     Link._client.restore();
     tNameStub.restore();
   });
-
 });
