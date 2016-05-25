@@ -1,12 +1,14 @@
 import * as chai from 'chai';
 const expect = chai.expect;
 const chaiAsPromised = require('chai-as-promised');
+const chaiThings = require('chai-things');
 const awsMock = require('aws-sdk-mock');
 const AWS = require('aws-sdk');
 import * as sinon from 'sinon';
 import * as sinonAsPromised from 'sinon-as-promised';
 import { Model } from '../src/models/model';
 
+chai.use(chaiThings);
 chai.use(chaiAsPromised);
 
 describe('Model', () => {
@@ -138,6 +140,24 @@ describe('Model', () => {
       });
     });
 
+    describe('#saveAll', () => {
+      it('calls the DynamoDB batchWrite method with correct params', (done) => {
+        const items = [{id: 'key'}, {id: 'key2'}];
+        Model.saveAll(items).then(() => {
+          const args = Model._client.lastCall.args;
+          const method = args[0];
+          const params = args[1];
+          expect(method).to.equal('batchWrite');
+          expect(params).to.have.deep.property(`RequestItems.${tableName}`);
+          for (let item of params.RequestItems[tableName]) {
+            expect(item).to.have.deep.property('PutRequest.Item');
+            expect(items).to.include.something.that.deep.equals(item.PutRequest.Item);
+          }
+          done();
+        });
+      });
+    });
+
     describe('#update', () => {
       it('calls the DynamoDB update method with correct params', (done) => {
         const params = {att: 'value', att2: 'value 2'};
@@ -176,8 +196,7 @@ describe('Model', () => {
           expect(args[1]).to.have.property('TableName');
           expect(args[1].Key).to.deep.equal(Model._buildKey(hashValue, rangeValue));
           done();
-        })
-        .catch(err => console.log(err));
+        });
       });
     });
 

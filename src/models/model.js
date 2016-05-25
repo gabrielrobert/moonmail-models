@@ -10,13 +10,22 @@ const db = new DynamoDB.DocumentClient(dynamoConfig);
 
 class Model {
 
-  static save(params) {
-    debug('= Model.save', params);
+  static save(item) {
+    debug('= Model.save', item);
     const itemParams = {
       TableName: this.tableName,
-      Item: params
+      Item: item
     };
     return this._client('put', itemParams);
+  }
+
+  static saveAll(items) {
+    debug('= Model.save', items);
+    const itemsParams = {RequestItems: {}};
+    itemsParams.RequestItems[this.tableName] = items.map(item => {
+      return {PutRequest: {Item: item}};
+    });
+    return this._client('batchWrite', itemsParams);
   }
 
   static get(hash, range) {
