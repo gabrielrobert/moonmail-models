@@ -20,7 +20,7 @@ class Model {
   }
 
   static saveAll(items) {
-    debug('= Model.save', items);
+    debug('= Model.saveAll', items);
     const itemsParams = {RequestItems: {}};
     itemsParams.RequestItems[this.tableName] = items.map(item => {
       return {PutRequest: {Item: item}};
@@ -135,6 +135,14 @@ class Model {
     return null;
   }
 
+  static get maxRetries() {
+    return 10;
+  }
+
+  static get retryDelay() {
+    return 50;
+  }
+
   static _buildKey(hash, range) {
     let key = {};
     key[this.hashKey] = hash;
@@ -157,7 +165,7 @@ class Model {
     return attrUpdates;
   }
 
-  static _client(method, params) {
+  static _client(method, params, retries = 0) {
     return new Promise((resolve, reject) => {
       debug('Model._client', JSON.stringify(params));
       this._db()[method](params, (err, data) => {
@@ -166,7 +174,17 @@ class Model {
           reject(err);
         } else {
           debug('= Model._client', method, 'Success');
-          resolve(data);
+          if (data.UnprocessedItems && Object.keys(data.UnprocessedItems).length > 0 && retries < this.maxRetries) {
+            debug('= Model._client', method, 'Some unprocessed items... Retrying', JSON.stringify(data));
+            const retryParams = {RequestItems: data.UnprocessedItems};
+            const delay = this.retryDelay * Math.pow(2, retries);
+            setTimeout(() => {
+              resolve(this._client(method, retryParams, retries + 1));
+            }, delay);
+          } else {
+            debug('= Model._client', method, 'resolving', JSON.stringify(data));
+            resolve(data);
+          }
         }
       });
     });
