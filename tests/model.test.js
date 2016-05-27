@@ -13,11 +13,24 @@ chai.use(chaiAsPromised);
 
 describe('Model', () => {
   let db;
+  const validTable = 'valid-table';
+  const retryableTable = 'retriable-table';
 
   before(() => {
     awsMock.mock('DynamoDB.DocumentClient', 'put', (params, cb) => {
       if (params.hasOwnProperty('TableName')) {
         cb(null, {});
+      } else {
+        cb('Invalid params');
+      }
+    });
+    awsMock.mock('DynamoDB.DocumentClient', 'batchWrite', (params, cb) => {
+      if (params.RequestItems.hasOwnProperty(validTable)) {
+        cb(null, {});
+      } else if (params.RequestItems.hasOwnProperty(retryableTable)) {
+        const result = {UnprocessedItems: {}};
+        result.UnprocessedItems[retryableTable] = [{id: 'some-id'}];
+        cb(null, result);
       } else {
         cb('Invalid params');
       }
@@ -43,6 +56,52 @@ describe('Model', () => {
       it('rejects the promise', (done) => {
         const clientPromise = Model._client('put', {});
         expect(clientPromise).to.be.rejected.and.notify(done);
+      });
+    });
+
+    let clientSpy = null;
+    let retryDelayStub = null;
+
+    context('when there are unprocessed items', () => {
+      before(() => {
+        clientSpy = sinon.spy(Model, '_client');
+        retryDelayStub = sinon.stub(Model, 'retryDelay', { get: () => 1.005});
+      });
+
+      it('retries the function up to maxRetries', (done) => {
+        const params = {RequestItems: {}};
+        params.RequestItems[retryableTable] = {};
+        Model._client('batchWrite', params).then((res) => {
+          expect(Model._client.callCount).to.equal(Model.maxRetries + 1);
+          const secondCallParams = Model._client.secondCall.args[1];
+          expect(secondCallParams.RequestItems).to.deep.equal(res.UnprocessedItems);
+          done();
+        });
+      });
+
+      after(() => {
+        clientSpy.restore();
+        retryDelayStub.restore();
+      });
+    });
+
+    context('when there aren\'t unprocessed items', () => {
+      before(() => {
+        clientSpy = sinon.spy(Model, '_client');
+      });
+
+      it('retries the function up to maxRetries', (done) => {
+        const params = {RequestItems: {}};
+        params.RequestItems[validTable] = {};
+        Model._client('batchWrite', params).then((res) => {
+          expect(Model._client.callCount).to.be.calledOnce;
+          expect(res).to.deep.equal({});
+          done();
+        });
+      });
+
+      after(() => {
+        clientSpy.restore();
       });
     });
   });
