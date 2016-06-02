@@ -169,7 +169,7 @@ describe('Model', () => {
           expect(args[1]).to.have.property('TableName', tableName);
           expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
           expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
-          expect(result).to.have.property('Items');
+          expect(result).to.have.property('items');
           expect(result).to.have.property('nextPage', nextPage);
           done();
         });

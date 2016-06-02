@@ -90,11 +90,11 @@ class Model {
       this._client('query', params).then((result) => {
         if (result.LastEvaluatedKey) {
           resolve({
-            Items: result.Items,
+            items: result.Items,
             nextPage: this.nextPage(result.LastEvaluatedKey)
           });
         } else {
-          resolve({Items: result.Items});
+          resolve({items: result.Items});
         }
       })
       .catch(err => reject(err));
