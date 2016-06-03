@@ -28,13 +28,16 @@ class Model {
     return this._client('batchWrite', itemsParams);
   }
 
-  static get(hash, range) {
+  static get(hash, range, options={}) {
     return new Promise((resolve, reject) => {
       debug('= Model.get', hash, range);
       const params = {
         TableName: this.tableName,
         Key: this._buildKey(hash, range)
       };
+      if(options.attributes){
+        params.ProjectionExpression = options.attributes.join(',');
+      }
       this._client('get', params).then(result => {
         if (result.Item) {
           resolve(result.Item);
