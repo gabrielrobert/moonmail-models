@@ -115,6 +115,7 @@ describe('Model', () => {
     const lastEvaluatedKey = {id: '1234', rangeKey: '654'};
     const nextPage = new Buffer(JSON.stringify(lastEvaluatedKey)).toString('base64');
     const item = {some_key: 'some_value'};
+    const options = {attributes: ['some_key']}
     let tNameStub;
     let hashStub;
     let rangeStub;
@@ -152,6 +153,20 @@ describe('Model', () => {
             expect(args[1]).to.have.property('TableName', tableName);
             expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
             expect(args[1]).to.have.deep.property(`Key.${rangeKey}`, rangeValue);
+            done();
+          });
+        });
+      });
+
+      context('attributes filter was provided', () => {
+        it('calls the DynamoDB get method with correct params', (done) => {
+          Model.get(hashValue, rangeValue, options).then(() => {
+            const args = Model._client.lastCall.args;
+            expect(args[0]).to.equal('get');
+            expect(args[1]).to.have.property('TableName', tableName);
+            expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
+            expect(args[1]).to.have.deep.property(`Key.${rangeKey}`, rangeValue);
+            expect(args[1]).to.have.property('ProjectionExpression', options.attributes.join(','));
             done();
           });
         });
