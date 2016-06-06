@@ -39,6 +39,7 @@
     "sinon-as-promised": "^4.0.0"
   },
   "dependencies": {
-    "aws-sdk": "^2.3.10"
+    "aws-sdk": "^2.3.10",
+    "joi": "^8.4.1"
   }
 }

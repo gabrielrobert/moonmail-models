@@ -14,6 +14,28 @@ describe('Campaign', () => {
   let tNameStub;
   const campaignHashKey = 'userId';
   const campaignRangeKey = 'id';
+  const invalidCampaign = { };
+  const validCampaign = { userId: 'user-id', body: 'a-body', subject: 'a-subject'};
+  const readyToSentCampaign = {
+    userId: 'user-id',
+    body: 'a-body',
+    subject: 'a-subject',
+    listIds: ['a-list'],
+    senderId: 'a-sender'
+  };
+  const incompleteCampaign = {
+    userId: 'user-id',
+    body: 'a-body',
+    subject: 'a-subject',
+    senderId: 'a-sender'
+  };
+  const incompleteCampaignWithEmptyList = {
+    userId: 'user-id',
+    body: 'a-body',
+    subject: 'a-subject',
+    senderId: 'a-sender',
+    listIds: []
+  };
 
   before(() => {
     sinon.stub(Campaign, '_client').resolves(true);
@@ -42,6 +64,27 @@ describe('Campaign', () => {
   describe('#rangeKey', () => {
     it('returns the range key name', () => {
       expect(Campaign.rangeKey).to.equal(campaignRangeKey);
+    });
+  });
+
+  describe('#isValid', () => {
+    it('succeds if all required fields are valid', () => {
+      expect(Campaign.isValid(validCampaign)).to.be.true;
+    });
+
+    it('fails if required fields are missing', () => {
+      expect(Campaign.isValid(invalidCampaign)).to.be.false;
+    });
+  });
+
+  describe('#isReadyToBeSent', () => {
+    it('succeds if all required fields are valid', () => {
+      expect(Campaign.isValidToBeSent(readyToSentCampaign)).to.be.true;
+    });
+
+    it('fails if required fields are missing', () => {
+      expect(Campaign.isValidToBeSent(incompleteCampaign)).to.be.false;
+      expect(Campaign.isValidToBeSent(incompleteCampaignWithEmptyList)).to.be.false;
     });
   });
 
