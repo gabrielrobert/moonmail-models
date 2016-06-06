@@ -16,9 +16,8 @@ class Campaign extends Model {
     return 'id';
   }
 
-  static isValid(campaign) {
-    debug('= Campaign.isValid', campaign);
-    const schema = Joi.object({
+  static get schema() {
+    return Joi.object({
       userId: Joi.string().required(),
       body: Joi.string().required(),
       subject: Joi.string().required(),
@@ -27,7 +26,6 @@ class Campaign extends Model {
       senderId: Joi.string(),
       listIds: Joi.array()
     });
-    return this._validate(schema, campaign);
   }
 
   static isValidToBeSent(campaign) {
@@ -41,12 +39,7 @@ class Campaign extends Model {
       name: Joi.string().required(),
       senderId: Joi.string().required()
     });
-    return this._validate(schema, campaign);
-  }
-
-  static _validate(schema, campaign) {
-    const result = Joi.validate(campaign, schema);
-    return !result.error;
+    return this._validateSchema(schema, campaign);
   }
 }
 

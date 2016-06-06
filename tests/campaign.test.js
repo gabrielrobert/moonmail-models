@@ -14,8 +14,6 @@ describe('Campaign', () => {
   let tNameStub;
   const campaignHashKey = 'userId';
   const campaignRangeKey = 'id';
-  const invalidCampaign = { };
-  const validCampaign = { userId: 'user-id', body: 'a-body', subject: 'a-subject', id: 'some-id', name: 'some-name'};
   const readyToSentCampaign = {
     userId: 'user-id',
     body: 'a-body',
@@ -66,16 +64,6 @@ describe('Campaign', () => {
   describe('#rangeKey', () => {
     it('returns the range key name', () => {
       expect(Campaign.rangeKey).to.equal(campaignRangeKey);
-    });
-  });
-
-  describe('#isValid', () => {
-    it('succeds if all required fields are valid', () => {
-      expect(Campaign.isValid(validCampaign)).to.be.true;
-    });
-
-    it('fails if required fields are missing', () => {
-      expect(Campaign.isValid(invalidCampaign)).to.be.false;
     });
   });
 
