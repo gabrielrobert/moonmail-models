@@ -21,7 +21,11 @@ class Campaign extends Model {
     const schema = Joi.object({
       userId: Joi.string().required(),
       body: Joi.string().required(),
-      subject: Joi.string().required()
+      subject: Joi.string().required(),
+      name: Joi.string().required(),
+      id: Joi.string().required(),
+      senderId: Joi.string(),
+      listIds: Joi.array()
     });
     return this._validate(schema, campaign);
   }
@@ -30,9 +34,11 @@ class Campaign extends Model {
     debug('= Campaign.isValidToBeSent', campaign);
     const schema = Joi.object({
       userId: Joi.string().required(),
+      id: Joi.string().required(),
       body: Joi.string().required(),
       subject: Joi.string().required(),
       listIds: Joi.array().items(Joi.string().required()).required(),
+      name: Joi.string().required(),
       senderId: Joi.string().required()
     });
     return this._validate(schema, campaign);

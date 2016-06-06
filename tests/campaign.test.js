@@ -15,13 +15,15 @@ describe('Campaign', () => {
   const campaignHashKey = 'userId';
   const campaignRangeKey = 'id';
   const invalidCampaign = { };
-  const validCampaign = { userId: 'user-id', body: 'a-body', subject: 'a-subject'};
+  const validCampaign = { userId: 'user-id', body: 'a-body', subject: 'a-subject', id: 'some-id', name: 'some-name'};
   const readyToSentCampaign = {
     userId: 'user-id',
     body: 'a-body',
     subject: 'a-subject',
     listIds: ['a-list'],
-    senderId: 'a-sender'
+    senderId: 'a-sender',
+    name: 'some-name',
+    id: 'some-id'
   };
   const incompleteCampaign = {
     userId: 'user-id',
