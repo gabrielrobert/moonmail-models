@@ -7,6 +7,7 @@ const AWS = require('aws-sdk');
 import * as sinon from 'sinon';
 import * as sinonAsPromised from 'sinon-as-promised';
 import { Model } from '../src/models/model';
+import Joi from 'joi';
 
 chai.use(chaiThings);
 chai.use(chaiAsPromised);
@@ -15,6 +16,8 @@ describe('Model', () => {
   let db;
   const validTable = 'valid-table';
   const retryableTable = 'retriable-table';
+  const invalidModel = { };
+  const validModel = { attr1: 'attr1', attr2: 'attr2' };
 
   before(() => {
     awsMock.mock('DynamoDB.DocumentClient', 'put', (params, cb) => {
@@ -120,6 +123,7 @@ describe('Model', () => {
     let hashStub;
     let rangeStub;
     let clientStub;
+    let schemaStub;
 
     before(() => {
       clientStub = sinon.stub(Model, '_client');
@@ -272,6 +276,44 @@ describe('Model', () => {
           done();
         });
       });
+    });
+
+    describe('#isValid', () => {
+      context('when using validation', () => {
+        before(() => {
+          const schema = Joi.object({
+            attr1: Joi.string().required(),
+            attr2: Joi.string().required()
+          });
+          schemaStub = sinon.stub(Model, 'schema', { get: () => schema });
+        });
+
+        it('succeeds if all required fields are valid', () => {
+          expect(Model.isValid(validModel)).to.be.true;
+        });
+
+        it('fails if required fields are missing', () => {
+          expect(Model.isValid(invalidModel)).to.be.false;
+        });
+
+        after(() => {
+          schemaStub.restore();
+        });
+      });
+
+      context('when not using validation', () => {
+        before(() => {
+          schemaStub = sinon.stub(Model, 'schema', { get: () => null });
+        });
+
+        it('succeeds if no validation schema is defined', () => {
+          expect(Model.isValid({some: 'object'})).to.be.true;
+        });
+
+        after(() => {
+          schemaStub.restore();
+        });
+    } );
     });
 
     after(() => {

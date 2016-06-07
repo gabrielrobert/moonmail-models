@@ -2,6 +2,7 @@
 
 import { debug } from './../logger';
 import { DynamoDB } from 'aws-sdk';
+import Joi from 'joi';
 
 const dynamoConfig = {
   region: process.env.AWS_REGION || 'us-east-1'
@@ -144,6 +145,21 @@ class Model {
 
   static get retryDelay() {
     return 50;
+  }
+
+  static get schema() {
+    return null;
+  }
+
+  static isValid(object) {
+    debug('= Model.isValid');
+    return this._validateSchema(this.schema, object);
+  }
+
+  static _validateSchema(schema, campaign) {
+    if (!this.schema) return true;
+    const result = Joi.validate(campaign, schema);
+    return !result.error;
   }
 
   static _buildKey(hash, range) {
