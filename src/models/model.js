@@ -105,6 +105,23 @@ class Model {
     });
   }
 
+  static countBy(key, value) {
+    return new Promise((resolve, reject) => {
+      debug('= Model.allBy', key, value);
+      const params = {
+        TableName: this.tableName,
+        KeyConditionExpression: '#hkey = :hvalue',
+        ExpressionAttributeNames: {'#hkey': key},
+        ExpressionAttributeValues: {':hvalue': value},
+        Select: 'COUNT'
+      };
+      this._client('query', params).then((result) => {
+        resolve(result.Count);
+      })
+      .catch(err => reject(err));
+    });
+  }
+
   static increment(attribute, count, hash, range) {
     debug('= Model.increment', hash, range, attribute, count);
     const params = {
