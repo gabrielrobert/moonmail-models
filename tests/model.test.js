@@ -205,6 +205,23 @@ describe('Model', () => {
       });
     });
 
+    describe('#countBy', () => {
+      const key = 'key';
+      const value = 'value';
+
+      it('calls the DynamoDB query method with correct params', (done) => {
+        Model.countBy(key, value).then((result) => {
+          const args = Model._client.lastCall.args;
+          expect(args[0]).to.equal('query');
+          expect(args[1]).to.have.property('TableName', tableName);
+          expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
+          expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
+          expect(args[1]).to.have.property('Select', 'COUNT');
+          done();
+        });
+      });
+    });
+
     describe('#save', () => {
       it('calls the DynamoDB put method with correct params', (done) => {
         const params = {id: 'key'};
