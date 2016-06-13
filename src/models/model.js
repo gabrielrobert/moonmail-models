@@ -16,7 +16,7 @@ class Model {
     const itemParams = {
       TableName: this.tableName,
       Item: item,
-      ReturnValues: 'ALL_NEW'
+      ReturnValues: 'ALL_OLD'
     };
     return this._client('put', itemParams);
   }
