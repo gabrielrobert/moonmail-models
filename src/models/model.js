@@ -15,7 +15,8 @@ class Model {
     debug('= Model.save', item);
     const itemParams = {
       TableName: this.tableName,
-      Item: item
+      Item: item,
+      ReturnValues: 'ALL_NEW'
     };
     return this._client('put', itemParams);
   }
