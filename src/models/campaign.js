@@ -24,7 +24,8 @@ class Campaign extends Model {
       name: Joi.string().required(),
       id: Joi.string().required(),
       senderId: Joi.string(),
-      listIds: Joi.array()
+      listIds: Joi.array(),
+      status: Joi.string()
     });
   }
 
@@ -37,7 +38,8 @@ class Campaign extends Model {
       subject: Joi.string().required(),
       listIds: Joi.array().items(Joi.string().required()).required(),
       name: Joi.string().required(),
-      senderId: Joi.string().required()
+      senderId: Joi.string().required(),
+      status: Joi.string()
     });
     return this._validateSchema(schema, campaign);
   }
