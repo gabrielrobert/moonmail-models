@@ -101,10 +101,14 @@ class Model {
         if (result.LastEvaluatedKey) {
           resolve({
             items: result.Items,
+            prevPage: options.nextPage,
             nextPage: this.nextPage(result.LastEvaluatedKey)
           });
         } else {
-          resolve({items: result.Items});
+          resolve({
+            items: result.Items,
+            prevPage: options.nextPage
+          });
         }
       })
       .catch(err => reject(err));
