@@ -170,7 +170,8 @@ describe('Model', () => {
             expect(args[1]).to.have.property('TableName', tableName);
             expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
             expect(args[1]).to.have.deep.property(`Key.${rangeKey}`, rangeValue);
-            expect(args[1]).to.have.property('ProjectionExpression', options.attributes.join(','));
+            expect(args[1]).to.have.property('ProjectionExpression', `#${options.attributes[0]}`);
+            expect(args[1]).to.have.deep.property(`ExpressionAttributeNames.#${options.attributes[0]}`, options.attributes[0]);
             done();
           });
         });
