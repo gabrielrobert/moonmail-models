@@ -25,8 +25,8 @@ class Campaign extends Model {
       id: Joi.string().required(),
       senderId: Joi.string(),
       listIds: Joi.array(),
-      sentAt: Joi.array(),
-      createdAt: Joi.array(),
+      sentAt: Joi.number(),
+      createdAt: Joi.number(),
       status: Joi.string()
     });
   }
@@ -41,8 +41,8 @@ class Campaign extends Model {
       listIds: Joi.array().items(Joi.string().required()).required(),
       name: Joi.string().required(),
       senderId: Joi.string(),
-      sentAt: Joi.array(),
-      createdAt: Joi.array(),
+      sentAt: Joi.number(),
+      createdAt: Joi.number(),
       status: Joi.string()
     });
     return this._validateSchema(schema, campaign);
