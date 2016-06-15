@@ -225,14 +225,15 @@ describe('Model', () => {
 
     describe('#save', () => {
       it('calls the DynamoDB put method with correct params', (done) => {
-        const params = {id: 'key'};
+        let params = {id: 'key'};
         Model.save(params).then(() => {
           const args = Model._client.lastCall.args;
           expect(args[0]).to.equal('put');
           expect(args[1]).to.have.property('TableName', tableName);
-          expect(args[1]).to.have.property('Item', params);
+          expect(args[1].Item).to.deep.contain(params);
+          expect(args[1].Item).to.have.property('createdAt');
           done();
-        });
+        })
       });
     });
 

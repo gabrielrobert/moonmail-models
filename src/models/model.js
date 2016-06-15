@@ -3,6 +3,7 @@
 import { debug } from './../logger';
 import { DynamoDB } from 'aws-sdk';
 import Joi from 'joi';
+import moment from 'moment';
 
 const dynamoConfig = {
   region: process.env.AWS_REGION || 'us-east-1'
@@ -18,6 +19,7 @@ class Model {
       Item: item,
       ReturnValues: 'ALL_OLD'
     };
+    itemParams.Item.createdAt = moment().unix();
     return this._client('put', itemParams);
   }
 
