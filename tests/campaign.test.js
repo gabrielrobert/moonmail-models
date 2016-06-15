@@ -9,6 +9,7 @@ chai.use(chaiAsPromised);
 
 describe('Campaign', () => {
   const tableName = 'Campaigns-table';
+  const sentAtIndexName = 'sent-at-index';
   const campaignId = 'campaignId';
   const userId = 'thatUserId';
   let tNameStub;
@@ -40,10 +41,11 @@ describe('Campaign', () => {
   before(() => {
     sinon.stub(Campaign, '_client').resolves(true);
     tNameStub = sinon.stub(Campaign, 'tableName', { get: () => tableName});
+    tNameStub = sinon.stub(Campaign, 'sentAtIndex', { get: () => sentAtIndexName});
   });
 
   describe('#get', () => {
-    it('calls the DynamoDB get method with correct params', (done) => {
+    it('calls the DynamoDB get method with correct params', done => {
       Campaign.get(userId, campaignId).then(() => {
         const args = Campaign._client.lastCall.args;
         expect(args[0]).to.equal('get');
@@ -52,6 +54,23 @@ describe('Campaign', () => {
         expect(args[1]).to.have.property('TableName', tableName);
         done();
       });
+    });
+  });
+
+  describe('#sentLastMonth()', () => {
+    it('calls the DynamoDB query method with correct params', done => {
+      Campaign.sentLastMonth(userId).then(() => {
+        const args = Campaign._client.lastCall.args;
+        expect(args[0]).to.equal('query');
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.property('IndexName', sentAtIndexName);
+        expect(args[1]).to.have.property('Select', 'COUNT');
+        expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:lastMonth');
+        expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:userId', userId);
+        expect(args[1]).to.have.property('KeyConditionExpression', 'userId = :userId and sentAt > :lastMonth');
+        done();
+      })
+      .catch(err => done(err));
     });
   });
 

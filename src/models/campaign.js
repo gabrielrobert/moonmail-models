@@ -1,11 +1,16 @@
 import { debug } from './../logger';
 import { Model } from './model';
 import Joi from 'joi';
+import moment from 'moment';
 
 class Campaign extends Model {
 
   static get tableName() {
     return process.env.CAMPAIGNS_TABLE;
+  }
+
+  static get sentAtIndex() {
+    return process.env.SENT_AT_INDEX_NAME;
   }
 
   static get hashKey() {
@@ -46,6 +51,22 @@ class Campaign extends Model {
       status: Joi.string()
     });
     return this._validateSchema(schema, campaign);
+  }
+
+  static sentLastMonth(userId) {
+    return new Promise((resolve, reject) => {
+      debug('= Campaign.sentLastMonth', userId);
+      const lastMonthTimestamp = moment().subtract(30, 'days').unix();
+      const params = {
+        TableName: this.tableName,
+        IndexName: this.sentAtIndex,
+        KeyConditionExpression: 'userId = :userId and sentAt > :lastMonth',
+        ExpressionAttributeValues: {':lastMonth': lastMonthTimestamp, ':userId': userId},
+        Select: 'COUNT'
+      };
+      return this._client('query', params).then(result => resolve(result.Count))
+          .catch(err => reject(err));
+    });
   }
 }
 
