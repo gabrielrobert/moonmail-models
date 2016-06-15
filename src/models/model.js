@@ -4,6 +4,7 @@ import { debug } from './../logger';
 import { DynamoDB } from 'aws-sdk';
 import Joi from 'joi';
 import moment from 'moment';
+import base64url from 'base64-url';
 
 const dynamoConfig = {
   region: process.env.AWS_REGION || 'us-east-1'
@@ -149,11 +150,11 @@ class Model {
   }
 
   static nextPage(lastEvaluatedKey) {
-    return new Buffer(JSON.stringify(lastEvaluatedKey)).toString('base64');
+    return base64url.encode(JSON.stringify(lastEvaluatedKey));
   }
 
   static lastEvaluatedKey(nextPage) {
-    return JSON.parse(new Buffer(nextPage, 'base64').toString('utf-8'));
+    return JSON.parse(base64url.decode(nextPage));
   }
 
   static get tableName() {

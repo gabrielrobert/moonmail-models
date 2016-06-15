@@ -8,6 +8,7 @@ import * as sinon from 'sinon';
 import * as sinonAsPromised from 'sinon-as-promised';
 import { Model } from '../src/models/model';
 import Joi from 'joi';
+import base64url from 'base64-url';
 
 chai.use(chaiThings);
 chai.use(chaiAsPromised);
@@ -116,9 +117,9 @@ describe('Model', () => {
     const hashValue = 'some hash value';
     const rangeValue = 'some range value';
     const lastEvaluatedKey = {id: '1234', rangeKey: '654'};
-    const nextPage = new Buffer(JSON.stringify(lastEvaluatedKey)).toString('base64');
+    const nextPage = base64url.encode(JSON.stringify(lastEvaluatedKey));
     const item = {some_key: 'some_value'};
-    const options = {attributes: ['some_key']}
+    const options = {attributes: ['some_key']};
     let tNameStub;
     let hashStub;
     let rangeStub;
