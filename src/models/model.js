@@ -147,6 +147,24 @@ class Model {
     return this._client('update', params);
   }
 
+  // TODO: It could be a good idea to make increment based on this
+  static incrementAll(hash, range, attrValuesObj) {
+    debug('= Model.incrementAttrs', hash, range, attrValuesObj);
+    const params = {
+      TableName: this.tableName,
+      Key: this._buildKey(hash, range),
+      AttributeUpdates: {}
+    };
+    for (let key in attrValuesObj) {
+      params.AttributeUpdates[key] = {
+        Action: 'ADD',
+        Value: attrValuesObj[key]
+      };
+    }
+    
+    return this._client('update', params);
+  }
+
   static nextPage(lastEvaluatedKey) {
     return base64url.encode(JSON.stringify(lastEvaluatedKey));
   }
