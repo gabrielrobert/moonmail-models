@@ -104,13 +104,11 @@ class Model {
         if (result.LastEvaluatedKey) {
           resolve({
             items: result.Items,
-            prevPage: options.nextPage,
             nextPage: this.nextPage(result.LastEvaluatedKey)
           });
         } else {
           resolve({
-            items: result.Items,
-            prevPage: options.nextPage
+            items: result.Items
           });
         }
       })
@@ -186,9 +184,9 @@ class Model {
     return this._validateSchema(this.schema, object);
   }
 
-  static _validateSchema(schema, campaign) {
+  static _validateSchema(schema, model) {
     if (!this.schema) return true;
-    const result = Joi.validate(campaign, schema);
+    const result = Joi.validate(model, schema);
     return !result.error;
   }
 
