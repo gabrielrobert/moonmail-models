@@ -198,7 +198,8 @@ describe('Model', () => {
 
       context('when the nexPage param was provided', () => {
         it('includes the ExclusiveStartKey in the query', (done) => {
-          Model.allBy(key, value, {nextPage}).then(() => {
+          const page = nextPage;
+          Model.allBy(key, value, {page}).then(() => {
             const args = Model._client.lastCall.args;
             expect(args[1].ExclusiveStartKey).to.deep.equal(lastEvaluatedKey);
             done();
@@ -234,7 +235,7 @@ describe('Model', () => {
           expect(args[1].Item).to.deep.contain(params);
           expect(args[1].Item).to.have.property('createdAt');
           done();
-        })
+        });
       });
     });
 
@@ -353,7 +354,7 @@ describe('Model', () => {
         after(() => {
           schemaStub.restore();
         });
-    } );
+      });
     });
 
     after(() => {
@@ -366,7 +367,7 @@ describe('Model', () => {
 
   describe('#_buildAttributeUpdates()', () => {
     it('returns a correct AttributeUpdates object', () => {
-      let params = {someAttribute: 'some value', anotherAttribute: 'another value'};
+      const params = {someAttribute: 'some value', anotherAttribute: 'another value'};
       params[Model.hashKey] = 'some value';
       params[Model.rangeKey] = 'some value';
       const attributeUpdates = Model._buildAttributeUpdates(params);
