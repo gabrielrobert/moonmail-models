@@ -5,6 +5,7 @@ import { DynamoDB } from 'aws-sdk';
 import Joi from 'joi';
 import moment from 'moment';
 import base64url from 'base64-url';
+import deepAssign from 'deep-assign';
 
 const dynamoConfig = {
   region: process.env.AWS_REGION || 'us-east-1'
@@ -40,23 +41,57 @@ class Model {
         TableName: this.tableName,
         Key: this._buildKey(hash, range)
       };
-      if (options.attributes) {
-        const attributesMapping = options.attributes.reduce((acumm, attrName, i) => {
-          acumm[`#${attrName}`] = attrName;
-          return acumm;
-        }, {});
-        params.ExpressionAttributeNames = attributesMapping;
-        params.ProjectionExpression = Object.keys(attributesMapping).join(',');
-      }
+      const dbOptions = this._buildOptions(options);
+      Object.assign(params, dbOptions);
       this._client('get', params).then(result => {
         if (result.Item) {
-          resolve(result.Item);
+          resolve(this._refineItem(result.Item, options));
         } else {
           resolve({});
         }
       })
       .catch(err => reject(err));
     });
+  }
+
+  static _buildOptions(options) {
+    debug('= Model._buildOptions', JSON.stringify(options));
+    const fieldsOptions = this._fieldsOptions(options);
+    return fieldsOptions;
+  }
+
+  static _fieldsOptions(options) {
+    debug('= Model._fieldsOptions', JSON.stringify(options));
+    const dbOptions = {};
+    if (String(options.include_fields) === 'true' && options.fields) {
+      const fields = options.fields.split(',');
+      dbOptions.ProjectionExpression = fields.map(field => `#${field}`).join(',');
+      const fieldsMapping = fields.reduce((acumm, attrName) => {
+        acumm[`#${attrName}`] = attrName;
+        return acumm;
+      }, {});
+      dbOptions.ExpressionAttributeNames = fieldsMapping;
+    }
+    return dbOptions;
+  }
+
+  static _refineItems(items, options) {
+    debug('= Model._refineItems', JSON.stringify(options));
+    if (String(options.include_fields) === 'false' && options.fields) {
+      return items.map(item => this._refineItem(item, options));
+    } else {
+      return items;
+    }
+  }
+
+  static _refineItem(item, options) {
+    debug('= Model._refineItem', JSON.stringify(options));
+    const refined = Object.assign({}, item);
+    if (String(options.include_fields) === 'false' && options.fields) {
+      const fields = options.fields.split(',');
+      fields.map(field => delete refined[field]);
+    }
+    return refined;
   }
 
   static update(params, hash, range) {
@@ -107,6 +142,8 @@ class Model {
           params.ExclusiveStartKey = this.lastEvaluatedKey(page);
         }
       }
+      const dbOptions = this._buildOptions(options);
+      deepAssign(params, dbOptions);
       this._client('query', params).then((result) => {
         let prevPage;
         if (result.Items && result.Items.length > 0) {
@@ -118,15 +155,16 @@ class Model {
           }
           prevPage = this.prevPage(tempKey);
         }
+        const items = this._refineItems(result.Items, options);
         if (result.LastEvaluatedKey) {
           resolve({
-            items: result.Items,
+            items,
             nextPage: this.nextPage(result.LastEvaluatedKey),
             prevPage
           });
         } else {
           resolve({
-            items: result.Items,
+            items,
             prevPage
           });
         }
@@ -180,7 +218,6 @@ class Model {
         Value: attrValuesObj[key]
       };
     }
-
     return this._client('update', params);
   }
 
