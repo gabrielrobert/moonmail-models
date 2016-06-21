@@ -118,8 +118,8 @@ describe('Model', () => {
     const rangeValue = 'some range value';
     const lastEvaluatedKey = {id: '1234', rangeKey: '654'};
     const nextPage = base64url.encode(JSON.stringify(lastEvaluatedKey));
-    const item = {some_key: 'some_value'};
-    const options = {attributes: ['some_key']};
+    const item = {anAttribute: 'its value', someAttribute: 'some_value', anotherAttribute: 'value', another: 'value'};
+    const items = Array(5).fill().map(() => item);
     let tNameStub;
     let hashStub;
     let rangeStub;
@@ -129,7 +129,7 @@ describe('Model', () => {
     before(() => {
       clientStub = sinon.stub(Model, '_client');
       clientStub.resolves('ok');
-      clientStub.withArgs('query').resolves({Items: [], LastEvaluatedKey: lastEvaluatedKey});
+      clientStub.withArgs('query').resolves({Items: items, LastEvaluatedKey: lastEvaluatedKey});
       clientStub.withArgs('get').resolves({Item: item});
       tNameStub = sinon.stub(Model, 'tableName', { get: () => tableName});
       hashStub = sinon.stub(Model, 'hashKey', { get: () => hashKey});
@@ -163,16 +163,36 @@ describe('Model', () => {
         });
       });
 
-      context('attributes filter was provided', () => {
+      context('fields filter was provided and include_fields is true', () => {
         it('calls the DynamoDB get method with correct params', (done) => {
+          const fields = ['attr1', 'attr2'];
+          const options = {fields: fields.join(','), include_fields: true};
           Model.get(hashValue, rangeValue, options).then(() => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('get');
             expect(args[1]).to.have.property('TableName', tableName);
             expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
             expect(args[1]).to.have.deep.property(`Key.${rangeKey}`, rangeValue);
-            expect(args[1]).to.have.property('ProjectionExpression', `#${options.attributes[0]}`);
-            expect(args[1]).to.have.deep.property(`ExpressionAttributeNames.#${options.attributes[0]}`, options.attributes[0]);
+            const dbOptions = Model._buildOptions(options);
+            for (let key in dbOptions) {
+              expect(args[1][key]).to.deep.equal(dbOptions[key]);
+            }
+            done();
+          });
+        });
+      });
+
+      context('fields filter was provided and include_fields is false', () => {
+        it('calls the DynamoDB get method with correct params', done => {
+          const field = 'someAttribute';
+          const options = {fields: field, include_fields: false};
+          Model.get(hashValue, rangeValue, options).then(result => {
+            const args = Model._client.lastCall.args;
+            expect(args[0]).to.equal('get');
+            expect(args[1]).to.have.property('TableName', tableName);
+            expect(args[1]).to.have.deep.property(`Key.${hashKey}`, hashValue);
+            expect(args[1]).to.have.deep.property(`Key.${rangeKey}`, rangeValue);
+            expect(result).not.to.have.property(field);
             done();
           });
         });
@@ -206,12 +226,51 @@ describe('Model', () => {
           });
         });
       });
+
+      context('fields filter was provided and include_fields is true', () => {
+        it('calls the DynamoDB get method with correct params', (done) => {
+          const attributes = ['attr1', 'attr2'];
+          const options = {fields: attributes.join(','), include_fields: true};
+          Model.allBy(key, value, options).then(result => {
+            const args = Model._client.lastCall.args;
+            expect(args[0]).to.equal('query');
+            expect(args[1]).to.have.property('TableName', tableName);
+            expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
+            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
+            expect(result).to.have.property('items');
+            const dbOptions = Model._buildOptions(options);
+            for (let key in dbOptions) {
+              expect(args[1][key]).to.deep.contain(dbOptions[key]);
+            }
+            done();
+          });
+        });
+      });
+
+      context('fields filter was provided and include_fields is false', () => {
+        it('filters the result', done => {
+          const fields = ['anAttribute', 'anotherAttribute'];
+          const options = {fields: fields.join(','), include_fields: false};
+          Model.allBy(key, value, options).then(result => {
+            const args = Model._client.lastCall.args;
+            expect(args[0]).to.equal('query');
+            expect(args[1]).to.have.property('TableName', tableName);
+            expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
+            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
+            expect(result).to.have.property('items');
+            result.items.forEach(item => {
+              fields.forEach(field => expect(item).not.to.have.property(field));
+            });
+            done();
+          })
+          .catch(err => done(err));
+        });
+      });
     });
 
     describe('#countBy', () => {
       const key = 'key';
       const value = 'value';
-
       it('calls the DynamoDB query method with correct params', (done) => {
         Model.countBy(key, value).then((result) => {
           const args = Model._client.lastCall.args;
@@ -298,10 +357,10 @@ describe('Model', () => {
           expect(args[0]).to.equal('update');
           expect(args[1]).to.have.property('TableName');
           expect(args[1]).to.have.property('Key');
-          expect(args[1]).to.have.deep.property(`AttributeUpdates.attr1.Action`, 'ADD');
-          expect(args[1]).to.have.deep.property(`AttributeUpdates.attr1.Value`, 1);
-          expect(args[1]).to.have.deep.property(`AttributeUpdates.attr2.Action`, 'ADD');
-          expect(args[1]).to.have.deep.property(`AttributeUpdates.attr2.Value`, -2);
+          expect(args[1]).to.have.deep.property('AttributeUpdates.attr1.Action', 'ADD');
+          expect(args[1]).to.have.deep.property('AttributeUpdates.attr1.Value', 1);
+          expect(args[1]).to.have.deep.property('AttributeUpdates.attr2.Action', 'ADD');
+          expect(args[1]).to.have.deep.property('AttributeUpdates.attr2.Value', -2);
           done();
         });
       });
@@ -379,6 +438,57 @@ describe('Model', () => {
           expect(attributeUpdates).to.have.deep.property(`${key}.Value`, params[key]);
         }
       }
+    });
+  });
+
+  describe('#_buildOptions', () => {
+    context('when fields are provided and include_fields is true', () => {
+      it('returns the correct project expression and attribute names', done => {
+        const fields = ['attr1', 'attr2'];
+        const options = {fields: fields.join(','), include_fields: true};
+        const dbOptions = Model._buildOptions(options);
+        const projExpression = fields.map(attr => `#${attr}`).join(',');
+        expect(dbOptions).to.have.property('ProjectionExpression', projExpression);
+        expect(dbOptions).to.have.deep.property(`ExpressionAttributeNames.#${fields[0]}`, fields[0]);
+        expect(dbOptions).to.have.deep.property(`ExpressionAttributeNames.#${fields[1]}`, fields[1]);
+        done();
+      });
+    });
+  });
+
+  describe('#_refineItem', () => {
+    context('when fields are provided and include_fields is false', () => {
+      it('filters the specified fields', done => {
+        const field1 = 'field1';
+        const field2 = 'field2';
+        const field3 = 'field3';
+        const item = {field1, field2, field3};
+        const options = {fields: `${field1},${field2}`, include_fields: false};
+        const refinedResult = Model._refineItem(item, options);
+        expect(refinedResult).to.have.property(field3, field3);
+        expect(refinedResult).not.to.have.property(field1);
+        expect(refinedResult).and.not.to.have.property(field2);
+        done();
+      });
+    });
+  });
+
+  describe('#_refineItems', () => {
+    context('when fields are provided and include_fields is false', () => {
+      it('filters the specified fields in all items', done => {
+        const field1 = 'field1';
+        const field2 = 'field2';
+        const field3 = 'field3';
+        const item = {field1, field2, field3};
+        const items = Array(5).fill().map(() => item);
+        const options = {fields: `${field1},${field2}`, include_fields: false};
+        const refinedResult = Model._refineItems(items, options);
+        refinedResult.forEach(refinedItem => {
+          expect(refinedItem).not.to.have.property(field1);
+          expect(refinedItem).not.to.have.property(field2);
+        });
+        done();
+      });
     });
   });
 
