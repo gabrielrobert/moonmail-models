@@ -127,7 +127,8 @@ class Model {
         TableName: this.tableName,
         KeyConditionExpression: '#hkey = :hvalue',
         ExpressionAttributeNames: {'#hkey': key},
-        ExpressionAttributeValues: {':hvalue': value}
+        ExpressionAttributeValues: {':hvalue': value},
+        ScanIndexForward: true
       };
       if (options.limit) {
         params.Limit = options.limit;
@@ -146,8 +147,8 @@ class Model {
       deepAssign(params, dbOptions);
       this._client('query', params).then((result) => {
         let prevPage;
-        if (result.Items && result.Items.length > 1) {
-          const pageItem = result.Items[1];
+        if (result.Items && result.Items.length > 0) {
+          const pageItem = result.Items[0];
           const tempKey = {};
           tempKey[this.hashKey] = pageItem[this.hashKey];
           if (this.rangeKey) {
