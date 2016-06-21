@@ -146,16 +146,19 @@ class Model {
       deepAssign(params, dbOptions);
       this._client('query', params).then((result) => {
         let prevPage;
-        if (result.Items && result.Items.length > 0) {
-          const lastItem = result.Items[result.Items.length - 1];
+        if (result.Items && result.Items.length > 1) {
+          const pageItem = result.Items[1];
           const tempKey = {};
-          tempKey[this.hashKey] = lastItem[this.hashKey];
+          tempKey[this.hashKey] = pageItem[this.hashKey];
           if (this.rangeKey) {
-            tempKey[this.rangeKey] = lastItem[this.rangeKey];
+            tempKey[this.rangeKey] = pageItem[this.rangeKey];
           }
           prevPage = this.prevPage(tempKey);
         }
         const items = this._refineItems(result.Items, options);
+        if (!params.ScanIndexForward) {
+          items.reverse();
+        }
         if (result.LastEvaluatedKey) {
           resolve({
             items,
