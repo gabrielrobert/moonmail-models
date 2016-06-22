@@ -492,6 +492,48 @@ describe('Model', () => {
     });
   });
 
+  describe('#__buildPaginationKeys', () => {
+    let hashStub;
+    let rangeStub;
+    before(() => {
+      hashStub = sinon.stub(Model, 'hashKey', { get: () => 'myHash'});
+      rangeStub = sinon.stub(Model, 'rangeKey', { get: () => 'myRange'});
+    });
+
+    context('forward pagination', () => {
+      it('returns prevKey and nextKey', done => {
+        const items = [
+          {
+            myHash: '1',
+            myRange: '1'
+          },
+          {
+            myHash: '1',
+            myRange: '2'
+          }
+        ];
+        const result = {
+          Items: items,
+          LastEvaluatedKey: {
+            myHash: '1',
+            myRange: '2'
+          }
+        };
+        const paginationKey = Model._buildPaginationKey(result, {ScanIndexForward: true});
+        const prevPageHash = Model.prevPage(items[0]);
+        const nextPageHash = Model.nextPage(items[1]);
+        expect(paginationKey).to.have.property('prevPage', prevPageHash);
+        expect(paginationKey).to.have.property('nextPage', nextPageHash);
+        done();
+      });
+    });
+
+    after(() => {
+      hashStub.restore();
+      rangeStub.restore();
+    });
+  });
+
   after(() => {
     awsMock.restore('DynamoDB.DocumentClient');
   });
