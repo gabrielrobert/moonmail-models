@@ -84,6 +84,34 @@ describe('Report', () => {
     });
   });
 
+  describe('#incrementOpens', () => {
+    it('calls the DynamoDB update method with correct params', (done) => {
+      Report.incrementOpens(campaignId).then(() => {
+        const args = Report._client.lastCall.args;
+        expect(args[0]).to.equal('update');
+        expect(args[1]).to.have.deep.property(`Key.${Report.hashKey}`, campaignId);
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.deep.property('AttributeUpdates.opensCount.Action', 'ADD');
+        expect(args[1]).to.have.deep.property('AttributeUpdates.opensCount.Value', 1);
+        done();
+      });
+    });
+  });
+
+  describe('#incrementClicks', () => {
+    it('calls the DynamoDB update method with correct params', (done) => {
+      Report.incrementClicks(campaignId).then(() => {
+        const args = Report._client.lastCall.args;
+        expect(args[0]).to.equal('update');
+        expect(args[1]).to.have.deep.property(`Key.${Report.hashKey}`, campaignId);
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.deep.property('AttributeUpdates.clicksCount.Action', 'ADD');
+        expect(args[1]).to.have.deep.property('AttributeUpdates.clicksCount.Value', 1);
+        done();
+      });
+    });
+  });
+
   after(() => {
     Report._client.restore();
     tNameStub.restore();
