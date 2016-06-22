@@ -25,6 +25,16 @@ class Report extends Model {
     debug('= Report.incrementComplaints', hash);
     return this.increment('complaintsCount', count, hash);
   }
+
+  static incrementOpens(hash, count = 1) {
+    debug('= Report.incrementOpens', hash);
+    return this.increment('opensCount', count, hash);
+  }
+
+  static incrementClicks(hash, count = 1) {
+    debug('= Report.incrementClicks', hash);
+    return this.increment('clicksCount', count, hash);
+  }
 }
 
 module.exports.Report = Report;
