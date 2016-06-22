@@ -57,7 +57,36 @@ class Model {
   static _buildOptions(options) {
     debug('= Model._buildOptions', JSON.stringify(options));
     const fieldsOptions = this._fieldsOptions(options);
+    const limitOptions = this._buildLimitOptions(options);
+    const pageOptions = this._buildPageOptions(options);
+    deepAssign(fieldsOptions, limitOptions, pageOptions);
     return fieldsOptions;
+  }
+
+  static _buildLimitOptions(options) {
+    if (options.limit) {
+      return {Limit: options.limit};
+    }
+    return {};
+  }
+
+  static _buildPageOptions(options) {
+    const page = options.page;
+    if (page) {
+      if (page.charAt(0) === '-') {
+        const prevPage = page.substring(1, page.length);
+        return {
+          ExclusiveStartKey: this.lastEvaluatedKey(prevPage),
+          ScanIndexForward: false
+        };
+      } else {
+        return {
+          ExclusiveStartKey: this.lastEvaluatedKey(page),
+          ScanIndexForward: true
+        };
+      }
+    }
+    return {};
   }
 
   static _fieldsOptions(options) {
@@ -92,6 +121,52 @@ class Model {
       fields.map(field => delete refined[field]);
     }
     return refined;
+  }
+
+  static _buildPaginationKey(result, params, options = {}) {
+    const paginationKey = {};
+    const items = result.Items.slice();
+    if (params.ScanIndexForward) {
+      if (items && items.length > 0) {
+        if (result.LastEvaluatedKey) {
+          paginationKey.nextPage = this.nextPage(result.LastEvaluatedKey);
+        }
+      }
+    } else {
+      if (items && items.length > 0) {
+        items.reverse();
+        const pageItem = items[items.length - 1];
+        const tempKey = {};
+        tempKey[this.hashKey] = pageItem[this.hashKey];
+        if (this.rangeKey) {
+          tempKey[this.rangeKey] = pageItem[this.rangeKey];
+        }
+        paginationKey.nextPage = this.nextPage(tempKey);
+      }
+    }
+    if (items && items.length > 0) {
+      const pageItem = items[0];
+      const tempKey = {};
+      tempKey[this.hashKey] = pageItem[this.hashKey];
+      if (this.rangeKey) {
+        tempKey[this.rangeKey] = pageItem[this.rangeKey];
+      }
+      paginationKey.prevPage = this.prevPage(tempKey);
+    }
+    return paginationKey;
+  }
+
+  static _buildResponse(result, params, options) {
+    const items = result.Items;
+    const paginationKeys = this._buildPaginationKey(result, params, options);
+    if (!params.ScanIndexForward) {
+      items.reverse();
+    }
+    const response = {
+      items: this._refineItems(items, options)
+    };
+    deepAssign(response, paginationKeys);
+    return response;
   }
 
   static update(params, hash, range) {
@@ -130,48 +205,11 @@ class Model {
         ExpressionAttributeValues: {':hvalue': value},
         ScanIndexForward: true
       };
-      if (options.limit) {
-        params.Limit = options.limit;
-      }
-      const page = options.page;
-      if (page) {
-        if (page.charAt(0) === '-') {
-          const prevPage = page.substring(1, page.length);
-          params.ExclusiveStartKey = this.lastEvaluatedKey(prevPage);
-          params.ScanIndexForward = false;
-        } else {
-          params.ExclusiveStartKey = this.lastEvaluatedKey(page);
-        }
-      }
       const dbOptions = this._buildOptions(options);
       deepAssign(params, dbOptions);
       this._client('query', params).then((result) => {
-        let prevPage;
-        if (result.Items && result.Items.length > 0) {
-          const pageItem = result.Items[0];
-          const tempKey = {};
-          tempKey[this.hashKey] = pageItem[this.hashKey];
-          if (this.rangeKey) {
-            tempKey[this.rangeKey] = pageItem[this.rangeKey];
-          }
-          prevPage = this.prevPage(tempKey);
-        }
-        const items = this._refineItems(result.Items, options);
-        if (!params.ScanIndexForward) {
-          items.reverse();
-        }
-        if (result.LastEvaluatedKey) {
-          resolve({
-            items,
-            nextPage: this.nextPage(result.LastEvaluatedKey),
-            prevPage
-          });
-        } else {
-          resolve({
-            items,
-            prevPage
-          });
-        }
+        const response = this._buildResponse(result, params, options);
+        resolve(response);
       })
       .catch(err => reject(err));
     });
@@ -273,7 +311,7 @@ class Model {
   }
 
   static _buildKey(hash, range) {
-    let key = {};
+    const key = {};
     key[this.hashKey] = hash;
     if (this.rangeKey) {
       key[this.rangeKey] = range;
@@ -282,7 +320,7 @@ class Model {
   }
 
   static _buildAttributeUpdates(params) {
-    let attrUpdates = {};
+    const attrUpdates = {};
     for (let key in params) {
       if (key !== this.hashKey && key !== this.rangeKey) {
         attrUpdates[key] = {
