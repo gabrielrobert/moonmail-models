@@ -123,36 +123,41 @@ class Model {
     return refined;
   }
 
-  static _buildPaginationKey(result, params, options = {}) {
+  static _buildPaginationKey(result, params) {
+    debug('= Model._buildPaginationKey', JSON.stringify(params));
+    const paginationKey = {};
+    const items = result.Items.slice();
+    if (items && items.length > 0) {
+      const prevKey = this._buildPrevKey(result);
+      const nextKey = this._buildNextKey(result, params);
+      Object.assign(paginationKey, prevKey, nextKey);
+    }
+    return paginationKey;
+  }
+
+  static _buildNextKey(result, params) {
+    debug('= Model._buildPrevKey');
     const paginationKey = {};
     const items = result.Items.slice();
     if (params.ScanIndexForward) {
-      if (items && items.length > 0) {
-        if (result.LastEvaluatedKey) {
-          paginationKey.nextPage = this.nextPage(result.LastEvaluatedKey);
-        }
+      if (result.LastEvaluatedKey) {
+        paginationKey.nextPage = this.nextPage(result.LastEvaluatedKey);
       }
     } else {
-      if (items && items.length > 0) {
-        items.reverse();
-        const pageItem = items[items.length - 1];
-        const tempKey = {};
-        tempKey[this.hashKey] = pageItem[this.hashKey];
-        if (this.rangeKey) {
-          tempKey[this.rangeKey] = pageItem[this.rangeKey];
-        }
-        paginationKey.nextPage = this.nextPage(tempKey);
-      }
+      items.reverse();
+      const pageItem = items[items.length - 1];
+      const nextKey = this._buildKey(pageItem[this.hashKey], pageItem[this.rangeKey]);
+      paginationKey.nextPage = this.nextPage(nextKey);
     }
-    if (items && items.length > 0) {
-      const pageItem = items[0];
-      const tempKey = {};
-      tempKey[this.hashKey] = pageItem[this.hashKey];
-      if (this.rangeKey) {
-        tempKey[this.rangeKey] = pageItem[this.rangeKey];
-      }
-      paginationKey.prevPage = this.prevPage(tempKey);
-    }
+    return paginationKey;
+  }
+
+  static _buildPrevKey(result) {
+    debug('= Model._buildNextKey');
+    const paginationKey = {};
+    const pageItem = result.Items.slice()[0];
+    const prevKey = this._buildKey(pageItem[this.hashKey], pageItem[this.rangeKey]);
+    paginationKey.prevPage = this.prevPage(prevKey);
     return paginationKey;
   }
 
