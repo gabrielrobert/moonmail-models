@@ -54,16 +54,21 @@ class Model {
     });
   }
 
-  static _buildOptions(options) {
+  static _buildOptions(options, params) {
     debug('= Model._buildOptions', JSON.stringify(options));
     const fieldsOptions = this._fieldsOptions(options);
-    const limitOptions = this._buildLimitOptions(options);
     const pageOptions = this._buildPageOptions(options);
-    deepAssign(fieldsOptions, limitOptions, pageOptions);
+    deepAssign(fieldsOptions, pageOptions);
+    const limitOptions = this._buildLimitOptions(options, fieldsOptions);
+    deepAssign(fieldsOptions, limitOptions);
+    debug('= Model._buildOptions fieldsOptions', JSON.stringify(fieldsOptions));
     return fieldsOptions;
   }
 
-  static _buildLimitOptions(options) {
+  static _buildLimitOptions(options, params) {
+    if (this._isPaginatingBackwards(params) && options.limit) {
+      return {Limit: options.limit + 1};
+    }
     if (options.limit) {
       return {Limit: options.limit};
     }
@@ -123,14 +128,17 @@ class Model {
     return refined;
   }
 
-  static _buildPaginationKey(result, params) {
+  static _buildPaginationKey(result, params, options = {}) {
     debug('= Model._buildPaginationKey', JSON.stringify(params));
     const paginationKey = {};
     const items = result.Items.slice();
     if (items && items.length > 0) {
-      const prevKey = this._buildPrevKey(result, params);
       const nextKey = this._buildNextKey(result, params);
-      Object.assign(paginationKey, prevKey, nextKey);
+      Object.assign(paginationKey, nextKey);
+      if (!this._isFirstPage(result, params, options)) {
+        const prevKey = this._buildPrevKey(result, params, options);
+        Object.assign(paginationKey, prevKey);
+      }
     }
     return paginationKey;
   }
@@ -152,26 +160,49 @@ class Model {
     return paginationKey;
   }
 
-  static _buildPrevKey(result, params) {
+  static _buildPrevKey(result, params, options) {
     debug('= Model._buildNextKey');
     const paginationKey = {};
     const items = result.Items.slice();
-    if (!params.ScanIndexForward) items.reverse();
-    const pageItem = items[0];
-    const prevKey = this._buildKey(pageItem[this.hashKey], pageItem[this.rangeKey]);
-    paginationKey.prevPage = this.prevPage(prevKey);
+    if (!this._isFirstPage(result, params, options)) {
+      if (items.length >= options.limit + 1) {
+        items.pop();
+      }
+      if (!params.ScanIndexForward) {
+        items.reverse();
+      }
+      const pageItem = items[0];
+      const prevKey = this._buildKey(pageItem[this.hashKey], pageItem[this.rangeKey]);
+      paginationKey.prevPage = this.prevPage(prevKey);
+    }
     return paginationKey;
   }
 
-  static _buildResponse(result, params, options) {
-    const items = result.Items;
-    const paginationKeys = this._buildPaginationKey(result, params, options);
-    if (!params.ScanIndexForward) {
-      items.reverse();
+  static _isFirstPage(result, params, options = {}) {
+    if ((!params.ScanIndexForward && result.Items.length < options.limit + 1)
+    || !options.page) {
+      return true;
     }
+    return false;
+  }
+
+  static _isPaginatingBackwards(params) {
+    return params.ScanIndexForward === false;
+  }
+
+  static _buildResponse(result, params, options) {
+    const items = result.Items.slice();
     const response = {
       items: this._refineItems(items, options)
     };
+    //paginating back
+    if (items.length >= options.limit + 1) {
+      items.pop();
+    }
+    if (!params.ScanIndexForward) {
+      items.reverse();
+    }
+    const paginationKeys = this._buildPaginationKey(result, params, options);
     deepAssign(response, paginationKeys);
     return response;
   }
@@ -212,7 +243,7 @@ class Model {
         ExpressionAttributeValues: {':hvalue': value},
         ScanIndexForward: true
       };
-      const dbOptions = this._buildOptions(options);
+      const dbOptions = this._buildOptions(options, params);
       deepAssign(params, dbOptions);
       this._client('query', params).then((result) => {
         const response = this._buildResponse(result, params, options);
