@@ -128,7 +128,7 @@ class Model {
     const paginationKey = {};
     const items = result.Items.slice();
     if (items && items.length > 0) {
-      const prevKey = this._buildPrevKey(result);
+      const prevKey = this._buildPrevKey(result, params);
       const nextKey = this._buildNextKey(result, params);
       Object.assign(paginationKey, prevKey, nextKey);
     }
@@ -152,10 +152,12 @@ class Model {
     return paginationKey;
   }
 
-  static _buildPrevKey(result) {
+  static _buildPrevKey(result, params) {
     debug('= Model._buildNextKey');
     const paginationKey = {};
-    const pageItem = result.Items.slice()[0];
+    const items = result.Items.slice();
+    if (!params.ScanIndexForward) items.reverse();
+    const pageItem = items[0];
     const prevKey = this._buildKey(pageItem[this.hashKey], pageItem[this.rangeKey]);
     paginationKey.prevPage = this.prevPage(prevKey);
     return paginationKey;
