@@ -112,6 +112,20 @@ describe('Report', () => {
     });
   });
 
+  describe('#incrementSent', () => {
+    it('calls the DynamoDB update method with correct params', (done) => {
+      Report.incrementSent(campaignId).then(() => {
+        const args = Report._client.lastCall.args;
+        expect(args[0]).to.equal('update');
+        expect(args[1]).to.have.deep.property(`Key.${Report.hashKey}`, campaignId);
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.deep.property('AttributeUpdates.sentCount.Action', 'ADD');
+        expect(args[1]).to.have.deep.property('AttributeUpdates.sentCount.Value', 1);
+        done();
+      });
+    });
+  });
+
   after(() => {
     Report._client.restore();
     tNameStub.restore();

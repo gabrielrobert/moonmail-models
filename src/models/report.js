@@ -35,6 +35,11 @@ class Report extends Model {
     debug('= Report.incrementClicks', hash);
     return this.increment('clicksCount', count, hash);
   }
+
+  static incrementSent(hash, count = 1) {
+    debug('= Report.incrementSent', hash);
+    return this.increment('sentCount', count, hash);
+  }
 }
 
 module.exports.Report = Report;
