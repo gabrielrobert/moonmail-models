@@ -501,7 +501,7 @@ describe('Model', () => {
     });
 
     context('forward pagination', () => {
-      it('returns prevKey and nextKey', done => {
+      it('returns first page with the nextKey', done => {
         const items = [
           {
             myHash: '1',
@@ -519,10 +519,8 @@ describe('Model', () => {
             myRange: '2'
           }
         };
-        const paginationKey = Model._buildPaginationKey(result, {ScanIndexForward: true});
-        const prevPageHash = Model.prevPage(items[0]);
+        const paginationKey = Model._buildPaginationKey(result, {ScanIndexForward: true, Limit: 1});
         const nextPageHash = Model.nextPage(items[1]);
-        expect(paginationKey).to.have.property('prevPage', prevPageHash);
         expect(paginationKey).to.have.property('nextPage', nextPageHash);
         done();
       });
