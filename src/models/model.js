@@ -54,13 +54,13 @@ class Model {
     });
   }
 
-  static _buildOptions(options, params) {
+  static _buildOptions(options) {
     debug('= Model._buildOptions', JSON.stringify(options));
     const fieldsOptions = this._fieldsOptions(options);
     const pageOptions = this._buildPageOptions(options);
-    deepAssign(fieldsOptions, pageOptions);
-    const limitOptions = this._buildLimitOptions(options, fieldsOptions);
-    deepAssign(fieldsOptions, limitOptions);
+    const limitOptions = this._buildLimitOptions(options, pageOptions);
+    const filterOptions = this._filterOptions(options);
+    deepAssign(fieldsOptions, pageOptions, limitOptions, filterOptions);
     debug('= Model._buildOptions fieldsOptions', JSON.stringify(fieldsOptions));
     return fieldsOptions;
   }
@@ -107,6 +107,46 @@ class Model {
       dbOptions.ExpressionAttributeNames = fieldsMapping;
     }
     return dbOptions;
+  }
+
+  static _filterOptions(options) {
+    debug('= Model._filterOptions', JSON.stringify(options));
+    const dbOptions = {};
+    if (options.filters) {
+      const attributeNamesMapping = {};
+      const attributeValuesMapping = {};
+      const filterExpressions = [];
+      Object.keys(options.filters).forEach(key => {
+        const attrName = `#${key}`;
+        attributeNamesMapping[attrName] = key;
+        const conditions = options.filters[key];
+        Object.keys(conditions).forEach(operand => {
+          const value = conditions[operand];
+          const attrValue = `:${key}`;
+          attributeValuesMapping[attrValue] = value;
+          filterExpressions.push(this._buildFilter(attrName, attrValue, this._filterOperandsMapping[operand]));
+        });
+      });
+      dbOptions.ExpressionAttributeNames = attributeNamesMapping;
+      dbOptions.ExpressionAttributeValues = attributeValuesMapping;
+      dbOptions.FilterExpression = filterExpressions.join(' AND ');
+    }
+    return dbOptions;
+  }
+
+  static _buildFilter(key, value, operand) {
+    return [key, operand, value].join(' ');
+  }
+
+  static get _filterOperandsMapping() {
+    return {
+      eq: '=',
+      ne: '<>',
+      le: '<=',
+      lt: '<',
+      ge: '>=',
+      gt: '>'
+    };
   }
 
   static _refineItems(items, options) {

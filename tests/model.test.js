@@ -454,6 +454,22 @@ describe('Model', () => {
         done();
       });
     });
+
+    context('when filter params are provided', () => {
+      it('returns the correct filter expression and attribute names', done => {
+        const status = 'subscribed';
+        const name = 'david';
+        const options = {filters: {status: {eq: status}, name: {ne: name}}};
+        const dbOptions = Model._buildOptions(options);
+        const filterExpression = '#status = :status AND #name <> :name';
+        expect(dbOptions).to.have.property('FilterExpression', filterExpression);
+        expect(dbOptions).to.have.deep.property('ExpressionAttributeNames.#status', 'status');
+        expect(dbOptions).to.have.deep.property('ExpressionAttributeNames.#name', 'name');
+        expect(dbOptions).to.have.deep.property('ExpressionAttributeValues.:status', status);
+        expect(dbOptions).to.have.deep.property('ExpressionAttributeValues.:name', name);
+        done();
+      });
+    });
   });
 
   describe('#_refineItem', () => {
