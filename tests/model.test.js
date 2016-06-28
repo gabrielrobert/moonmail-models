@@ -316,6 +316,23 @@ describe('Model', () => {
       });
     });
 
+    describe('#deleteAll', () => {
+      it('calls the DynamoDB batchWrite method with correct params', (done) => {
+        const itemsKeys = [['key1'], ['key2']];
+        Model.deleteAll(itemsKeys).then(() => {
+          const args = Model._client.lastCall.args;
+          const method = args[0];
+          const params = args[1];
+          expect(method).to.equal('batchWrite');
+          expect(params).to.have.deep.property(`RequestItems.${tableName}`);
+          for (let request of params.RequestItems[tableName]) {
+            expect(request).to.have.deep.property(`DeleteRequest.Key.${Model.hashKey}`);
+          }
+          done();
+        });
+      });
+    });
+
     describe('#update', () => {
       it('calls the DynamoDB update method with correct params', (done) => {
         const params = {att: 'value', att2: 'value 2'};

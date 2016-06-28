@@ -34,6 +34,15 @@ class Model {
     return this._client('batchWrite', itemsParams);
   }
 
+  static deleteAll(keys) {
+    debug('= Model.deleteAll', keys);
+    const itemsParams = {RequestItems: {}};
+    itemsParams.RequestItems[this.tableName] = keys.map(key => {
+      return {DeleteRequest: {Key: this._buildKey(key[0], key[1])}};
+    });
+    return this._client('batchWrite', itemsParams);
+  }
+
   static get(hash, range, options = {}) {
     return new Promise((resolve, reject) => {
       debug('= Model.get', hash, range);
