@@ -17,7 +17,7 @@ describe('List', () => {
 
   before(() => {
     sinon.stub(List, '_client').resolves(true);
-    tNameStub = sinon.stub(List, 'tableName', { get: () => tableName});
+    tNameStub = sinon.stub(List, 'tableName', { get: () => tableName });
   });
 
   describe('#get', () => {
@@ -42,6 +42,25 @@ describe('List', () => {
   describe('#rangeKey', () => {
     it('returns the range key name', () => {
       expect(List.rangeKey).to.equal(listRangeKey);
+    });
+  });
+
+  describe('#updateImportStatus', () => {
+    it('updates the import status object attributes', () => {
+      List.updateImportStatus(userId, listId, 'some-file.csv', { updatedAt: '9898789798', status: 'FAILED' }).then(() => {
+        const args = List._client.lastCall.args;
+        expect(args[0]).to.equal('update');
+        expect(args[1]).to.have.deep.property(`Key.${listHashKey}`, userId);
+        expect(args[1]).to.have.deep.property(`Key.${listRangeKey}`, listId);
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.property('UpdateExpression', 'SET #importStatus.#fileName = :newStatus');
+        expect(args[1]).to.have.property('ExpressionAttributeNames', {
+          '#importStatus': 'importStatus',
+          '#fileName': 'some-file.csv'
+        });
+        expect(args[1].ExpressionAttributeValues).to.deep.equals({ ':newStatus': { updatedAt: '9898789798', status: 'FAILED' } });
+        done();
+      });
     });
   });
 
