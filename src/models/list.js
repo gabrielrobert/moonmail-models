@@ -15,21 +15,46 @@ class List extends Model {
     return 'id';
   }
 
-  static updateImportStatus(userId, listId, fileName, status) {
-    debug('= List.updateStatus', userId, listId, fileName, status);
+  static createFileImportStatus(userId, listId, file, status) {
+    debug('= List.createFileImportStatus', userId, listId, file, status);
     const addParams = {
       Key: {
         userId,
         id: listId
       },
       TableName: this.tableName,
-      UpdateExpression: 'SET #importStatus.#fileName = :newStatus',
+      UpdateExpression: 'SET #importStatus.#file = :newStatus',
       ExpressionAttributeNames: {
         '#importStatus': 'importStatus',
-        '#fileName': fileName
+        '#file': file
       },
       ExpressionAttributeValues: {
         ':newStatus': status
+      }
+    };
+    return this._client('update', addParams);
+  }
+
+  static updateImportStatus(userId, listId, file, status) {
+    debug('= List.updateImportStatus', userId, listId, file, status);
+    const addParams = {
+      Key: {
+        userId,
+        id: listId
+      },
+      TableName: this.tableName,
+      UpdateExpression: 'SET #importStatus.#file.#status = :newStatus, #importStatus.#file.#dateField = :newDate, #importStatus.#file.#importing = :importingValue',
+      ExpressionAttributeNames: {
+        '#importStatus': 'importStatus',
+        '#file': file,
+        '#status': 'status',
+        '#dateField': status.dateField,
+        '#importing': 'importing'
+      },
+      ExpressionAttributeValues: {
+        ':newStatus': status.text,
+        ':newDate': status.dateValue,
+        ':importingValue': status.isImporting
       }
     };
     return this._client('update', addParams);
