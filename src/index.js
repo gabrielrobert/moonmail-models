@@ -1,3 +1,4 @@
+export * from './models/model';
 export * from './models/link';
 export * from './models/campaign';
 export * from './models/report';
