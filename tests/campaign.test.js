@@ -39,7 +39,7 @@ describe('Campaign', () => {
   };
 
   before(() => {
-    sinon.stub(Campaign, '_client').resolves(true);
+    sinon.stub(Campaign, '_client').resolves({Items: []});
     tNameStub = sinon.stub(Campaign, 'tableName', { get: () => tableName});
     tNameStub = sinon.stub(Campaign, 'sentAtIndex', { get: () => sentAtIndexName});
   });
@@ -68,6 +68,19 @@ describe('Campaign', () => {
         expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:lastMonth');
         expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:userId', userId);
         expect(args[1]).to.have.property('KeyConditionExpression', 'userId = :userId and sentAt > :lastMonth');
+        done();
+      });
+    });
+  });
+
+  describe('#sentBy()', () => {
+    it('calls the DynamoDB query method with correct params', done => {
+      Campaign.sentBy(userId).then(() => {
+        const args = Campaign._client.lastCall.args;
+        expect(args[0]).to.equal('query');
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:status', 'sent');
+        expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#status', 'status');
         done();
       })
       .catch(err => done(err));

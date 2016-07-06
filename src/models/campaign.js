@@ -2,6 +2,7 @@ import { debug } from './../logger';
 import { Model } from './model';
 import Joi from 'joi';
 import moment from 'moment';
+import deepAssign from 'deep-assign';
 
 class Campaign extends Model {
 
@@ -65,6 +66,16 @@ class Campaign extends Model {
         Select: 'COUNT'
       };
       return this._client('query', params).then(result => resolve(result.Count))
+          .catch(err => reject(err));
+    });
+  }
+
+  static sentBy(userId, options = {}) {
+    return new Promise((resolve, reject) => {
+      debug('= Campaign.sentBy', userId);
+      const filterOptions = {filters: {status: {eq: 'sent'}}};
+      const sentByOptions = deepAssign(options, filterOptions);
+      return this.allBy('userId', userId, sentByOptions).then(result => resolve(result))
           .catch(err => reject(err));
     });
   }
