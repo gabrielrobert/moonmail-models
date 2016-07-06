@@ -6,6 +6,7 @@ import Joi from 'joi';
 import moment from 'moment';
 import base64url from 'base64-url';
 import deepAssign from 'deep-assign';
+import omitEmpty from 'omit-empty';
 
 const dynamoConfig = {
   region: process.env.AWS_REGION || 'us-east-1'
@@ -29,7 +30,7 @@ class Model {
     debug('= Model.saveAll', items);
     const itemsParams = {RequestItems: {}};
     itemsParams.RequestItems[this.tableName] = items.map(item => {
-      return {PutRequest: {Item: item}};
+      return {PutRequest: {Item: omitEmpty(item)}};
     });
     return this._client('batchWrite', itemsParams);
   }

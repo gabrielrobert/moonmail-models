@@ -9,6 +9,7 @@ import * as sinonAsPromised from 'sinon-as-promised';
 import { Model } from '../src/models/model';
 import Joi from 'joi';
 import base64url from 'base64-url';
+import omitEmpty from 'omit-empty';
 
 chai.use(chaiThings);
 chai.use(chaiAsPromised);
@@ -17,7 +18,7 @@ describe('Model', () => {
   let db;
   const validTable = 'valid-table';
   const retryableTable = 'retriable-table';
-  const invalidModel = { };
+  const invalidModel = {};
   const validModel = { attr1: 'attr1', attr2: 'attr2' };
 
   before(() => {
@@ -32,8 +33,8 @@ describe('Model', () => {
       if (params.RequestItems.hasOwnProperty(validTable)) {
         cb(null, {});
       } else if (params.RequestItems.hasOwnProperty(retryableTable)) {
-        const result = {UnprocessedItems: {}};
-        result.UnprocessedItems[retryableTable] = [{id: 'some-id'}];
+        const result = { UnprocessedItems: {} };
+        result.UnprocessedItems[retryableTable] = [{ id: 'some-id' }];
         cb(null, result);
       } else {
         cb('Invalid params');
@@ -46,7 +47,7 @@ describe('Model', () => {
   describe('#_client()', () => {
     it('calls the DynamoDB specified method and passes the params', (done) => {
       const method = 'put';
-      const params = { TableName: 'my-table', Item: {id: '123'}};
+      const params = { TableName: 'my-table', Item: { id: '123' } };
       Model._client(method, params).then(() => {
         const dbMethod = db[method];
         const dbArgs = dbMethod.lastCall.args;
@@ -69,11 +70,11 @@ describe('Model', () => {
     context('when there are unprocessed items', () => {
       before(() => {
         clientSpy = sinon.spy(Model, '_client');
-        retryDelayStub = sinon.stub(Model, 'retryDelay', { get: () => 1.005});
+        retryDelayStub = sinon.stub(Model, 'retryDelay', { get: () => 1.005 });
       });
 
       it('retries the function up to maxRetries', (done) => {
-        const params = {RequestItems: {}};
+        const params = { RequestItems: {} };
         params.RequestItems[retryableTable] = {};
         Model._client('batchWrite', params).then((res) => {
           expect(Model._client.callCount).to.equal(Model.maxRetries + 1);
@@ -95,7 +96,7 @@ describe('Model', () => {
       });
 
       it('retries the function up to maxRetries', (done) => {
-        const params = {RequestItems: {}};
+        const params = { RequestItems: {} };
         params.RequestItems[validTable] = {};
         Model._client('batchWrite', params).then((res) => {
           expect(Model._client.callCount).to.be.calledOnce;
@@ -116,9 +117,9 @@ describe('Model', () => {
     const rangeKey = 'myRange';
     const hashValue = 'some hash value';
     const rangeValue = 'some range value';
-    const lastEvaluatedKey = {id: '1234', rangeKey: '654'};
+    const lastEvaluatedKey = { id: '1234', rangeKey: '654' };
     const nextPage = base64url.encode(JSON.stringify(lastEvaluatedKey));
-    const item = {anAttribute: 'its value', someAttribute: 'some_value', anotherAttribute: 'value', another: 'value'};
+    const item = { anAttribute: 'its value', someAttribute: 'some_value', anotherAttribute: 'value', another: 'value' };
     const items = Array(5).fill().map(() => item);
     let tNameStub;
     let hashStub;
@@ -129,11 +130,11 @@ describe('Model', () => {
     before(() => {
       clientStub = sinon.stub(Model, '_client');
       clientStub.resolves('ok');
-      clientStub.withArgs('query').resolves({Items: items, LastEvaluatedKey: lastEvaluatedKey});
-      clientStub.withArgs('get').resolves({Item: item});
-      tNameStub = sinon.stub(Model, 'tableName', { get: () => tableName});
-      hashStub = sinon.stub(Model, 'hashKey', { get: () => hashKey});
-      rangeStub = sinon.stub(Model, 'rangeKey', { get: () => rangeKey});
+      clientStub.withArgs('query').resolves({ Items: items, LastEvaluatedKey: lastEvaluatedKey });
+      clientStub.withArgs('get').resolves({ Item: item });
+      tNameStub = sinon.stub(Model, 'tableName', { get: () => tableName });
+      hashStub = sinon.stub(Model, 'hashKey', { get: () => hashKey });
+      rangeStub = sinon.stub(Model, 'rangeKey', { get: () => rangeKey });
     });
 
     describe('#get', () => {
@@ -166,7 +167,7 @@ describe('Model', () => {
       context('fields filter was provided and include_fields is true', () => {
         it('calls the DynamoDB get method with correct params', (done) => {
           const fields = ['attr1', 'attr2'];
-          const options = {fields: fields.join(','), include_fields: true};
+          const options = { fields: fields.join(','), include_fields: true };
           Model.get(hashValue, rangeValue, options).then(() => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('get');
@@ -185,7 +186,7 @@ describe('Model', () => {
       context('fields filter was provided and include_fields is false', () => {
         it('calls the DynamoDB get method with correct params', done => {
           const field = 'someAttribute';
-          const options = {fields: field, include_fields: false};
+          const options = { fields: field, include_fields: false };
           Model.get(hashValue, rangeValue, options).then(result => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('get');
@@ -219,7 +220,7 @@ describe('Model', () => {
       context('when the nexPage param was provided', () => {
         it('includes the ExclusiveStartKey in the query', (done) => {
           const page = nextPage;
-          Model.allBy(key, value, {page}).then(() => {
+          Model.allBy(key, value, { page }).then(() => {
             const args = Model._client.lastCall.args;
             expect(args[1].ExclusiveStartKey).to.deep.equal(lastEvaluatedKey);
             done();
@@ -230,7 +231,7 @@ describe('Model', () => {
       context('fields filter was provided and include_fields is true', () => {
         it('calls the DynamoDB get method with correct params', (done) => {
           const attributes = ['attr1', 'attr2'];
-          const options = {fields: attributes.join(','), include_fields: true};
+          const options = { fields: attributes.join(','), include_fields: true };
           Model.allBy(key, value, options).then(result => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('query');
@@ -250,7 +251,7 @@ describe('Model', () => {
       context('fields filter was provided and include_fields is false', () => {
         it('filters the result', done => {
           const fields = ['anAttribute', 'anotherAttribute'];
-          const options = {fields: fields.join(','), include_fields: false};
+          const options = { fields: fields.join(','), include_fields: false };
           Model.allBy(key, value, options).then(result => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('query');
@@ -263,7 +264,7 @@ describe('Model', () => {
             });
             done();
           })
-          .catch(err => done(err));
+            .catch(err => done(err));
         });
       });
     });
@@ -286,7 +287,7 @@ describe('Model', () => {
 
     describe('#save', () => {
       it('calls the DynamoDB put method with correct params', (done) => {
-        let params = {id: 'key'};
+        let params = { id: 'key' };
         Model.save(params).then(() => {
           const args = Model._client.lastCall.args;
           expect(args[0]).to.equal('put');
@@ -300,16 +301,18 @@ describe('Model', () => {
 
     describe('#saveAll', () => {
       it('calls the DynamoDB batchWrite method with correct params', (done) => {
-        const items = [{id: 'key'}, {id: 'key2'}];
+        const items = [{ id: 'key', some: { nonEmpty: 1 } }, { id: 'key2', some: { attribute: '', nonEmpty: 1 } }];
+        const nItems = items.map((i) => omitEmpty(i));
         Model.saveAll(items).then(() => {
           const args = Model._client.lastCall.args;
           const method = args[0];
           const params = args[1];
           expect(method).to.equal('batchWrite');
           expect(params).to.have.deep.property(`RequestItems.${tableName}`);
+
           for (let item of params.RequestItems[tableName]) {
             expect(item).to.have.deep.property('PutRequest.Item');
-            expect(items).to.include.something.that.deep.equals(item.PutRequest.Item);
+            expect(nItems).to.include.something.that.deep.equals(item.PutRequest.Item);
           }
           done();
         });
@@ -335,7 +338,7 @@ describe('Model', () => {
 
     describe('#update', () => {
       it('calls the DynamoDB update method with correct params', (done) => {
-        const params = {att: 'value', att2: 'value 2'};
+        const params = { att: 'value', att2: 'value 2' };
         Model.update(params, hashValue, rangeValue).then(() => {
           const args = Model._client.lastCall.args;
           expect(args[0]).to.equal('update');
@@ -424,7 +427,7 @@ describe('Model', () => {
         });
 
         it('succeeds if no validation schema is defined', () => {
-          expect(Model.isValid({some: 'object'})).to.be.true;
+          expect(Model.isValid({ some: 'object' })).to.be.true;
         });
 
         after(() => {
@@ -443,7 +446,7 @@ describe('Model', () => {
 
   describe('#_buildAttributeUpdates()', () => {
     it('returns a correct AttributeUpdates object', () => {
-      const params = {someAttribute: 'some value', anotherAttribute: 'another value'};
+      const params = { someAttribute: 'some value', anotherAttribute: 'another value' };
       params[Model.hashKey] = 'some value';
       params[Model.rangeKey] = 'some value';
       const attributeUpdates = Model._buildAttributeUpdates(params);
@@ -462,7 +465,7 @@ describe('Model', () => {
     context('when fields are provided and include_fields is true', () => {
       it('returns the correct project expression and attribute names', done => {
         const fields = ['attr1', 'attr2'];
-        const options = {fields: fields.join(','), include_fields: true};
+        const options = { fields: fields.join(','), include_fields: true };
         const dbOptions = Model._buildOptions(options);
         const projExpression = fields.map(attr => `#${attr}`).join(',');
         expect(dbOptions).to.have.property('ProjectionExpression', projExpression);
@@ -476,7 +479,7 @@ describe('Model', () => {
       it('returns the correct filter expression and attribute names', done => {
         const status = 'subscribed';
         const name = 'david';
-        const options = {filters: {status: {eq: status}, name: {ne: name}}};
+        const options = { filters: { status: { eq: status }, name: { ne: name } } };
         const dbOptions = Model._buildOptions(options);
         const filterExpression = '#status = :status AND #name <> :name';
         expect(dbOptions).to.have.property('FilterExpression', filterExpression);
@@ -495,8 +498,8 @@ describe('Model', () => {
         const field1 = 'field1';
         const field2 = 'field2';
         const field3 = 'field3';
-        const item = {field1, field2, field3};
-        const options = {fields: `${field1},${field2}`, include_fields: false};
+        const item = { field1, field2, field3 };
+        const options = { fields: `${field1},${field2}`, include_fields: false };
         const refinedResult = Model._refineItem(item, options);
         expect(refinedResult).to.have.property(field3, field3);
         expect(refinedResult).not.to.have.property(field1);
@@ -512,9 +515,9 @@ describe('Model', () => {
         const field1 = 'field1';
         const field2 = 'field2';
         const field3 = 'field3';
-        const item = {field1, field2, field3};
+        const item = { field1, field2, field3 };
         const items = Array(5).fill().map(() => item);
-        const options = {fields: `${field1},${field2}`, include_fields: false};
+        const options = { fields: `${field1},${field2}`, include_fields: false };
         const refinedResult = Model._refineItems(items, options);
         refinedResult.forEach(refinedItem => {
           expect(refinedItem).not.to.have.property(field1);
@@ -529,8 +532,8 @@ describe('Model', () => {
     let hashStub;
     let rangeStub;
     before(() => {
-      hashStub = sinon.stub(Model, 'hashKey', { get: () => 'myHash'});
-      rangeStub = sinon.stub(Model, 'rangeKey', { get: () => 'myRange'});
+      hashStub = sinon.stub(Model, 'hashKey', { get: () => 'myHash' });
+      rangeStub = sinon.stub(Model, 'rangeKey', { get: () => 'myRange' });
     });
 
     context('forward pagination', () => {
@@ -552,7 +555,7 @@ describe('Model', () => {
             myRange: '2'
           }
         };
-        const paginationKey = Model._buildPaginationKey(result, {ScanIndexForward: true, Limit: 1});
+        const paginationKey = Model._buildPaginationKey(result, { ScanIndexForward: true, Limit: 1 });
         const nextPageHash = Model.nextPage(items[1]);
         expect(paginationKey).to.have.property('nextPage', nextPageHash);
         done();
