@@ -5,7 +5,9 @@ import * as sinon from 'sinon';
 import * as sinonAsPromised from 'sinon-as-promised';
 import { Campaign } from '../src/models/campaign';
 
+const sinonChai = require('sinon-chai');
 chai.use(chaiAsPromised);
+chai.use(sinonChai);
 
 describe('Campaign', () => {
   const tableName = 'Campaigns-table';
@@ -57,19 +59,30 @@ describe('Campaign', () => {
     });
   });
 
-  describe('#sentLastMonth()', () => {
+  describe('#sentLastNDays()', () => {
     it('calls the DynamoDB query method with correct params', done => {
-      Campaign.sentLastMonth(userId).then(() => {
+      Campaign.sentLastNDays(userId).then(() => {
         const args = Campaign._client.lastCall.args;
         expect(args[0]).to.equal('query');
         expect(args[1]).to.have.property('TableName', tableName);
         expect(args[1]).to.have.property('IndexName', sentAtIndexName);
         expect(args[1]).to.have.property('Select', 'COUNT');
-        expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:lastMonth');
+        expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:lastDays');
         expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:userId', userId);
-        expect(args[1]).to.have.property('KeyConditionExpression', 'userId = :userId and sentAt > :lastMonth');
+        expect(args[1]).to.have.property('KeyConditionExpression', 'userId = :userId and sentAt > :lastDays');
         done();
-      });
+      }).catch(done);
+    });
+  });
+
+  describe('#sentLastMonth()', () => {
+    it('calls the DynamoDB query method with correct params', done => {
+      const spy = sinon.spy(Campaign, 'sentLastNDays');
+      Campaign.sentLastMonth(userId).then(() => {
+        expect(spy).to.have.been.calledWith(userId, 30);
+        Campaign.sentLastNDays.restore();
+        done();
+      }).catch(done);
     });
   });
 

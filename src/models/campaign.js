@@ -55,19 +55,25 @@ class Campaign extends Model {
   }
 
   static sentLastMonth(userId) {
+    debug('= Campaign.sentLastMonth', userId);
+    return this.sentLastNDays(userId, 30);
+  }
+
+  static sentLastNDays(userId, n = 1) {
     return new Promise((resolve, reject) => {
-      debug('= Campaign.sentLastMonth', userId);
-      const lastMonthTimestamp = moment().subtract(30, 'days').unix();
+      debug('= Campaign.sentLastNDays', userId, n);
+      const lastMonthTimestamp = moment().subtract(n, 'days').unix();
       const params = {
         TableName: this.tableName,
         IndexName: this.sentAtIndex,
-        KeyConditionExpression: 'userId = :userId and sentAt > :lastMonth',
-        ExpressionAttributeValues: {':lastMonth': lastMonthTimestamp, ':userId': userId},
+        KeyConditionExpression: 'userId = :userId and sentAt > :lastDays',
+        ExpressionAttributeValues: {':lastDays': lastMonthTimestamp, ':userId': userId},
         Select: 'COUNT'
       };
       return this._client('query', params).then(result => resolve(result.Count))
           .catch(err => reject(err));
     });
+
   }
 
   static sentBy(userId, options = {}) {
