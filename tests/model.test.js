@@ -99,10 +99,11 @@ describe('Model', () => {
         const params = { RequestItems: {} };
         params.RequestItems[validTable] = {};
         Model._client('batchWrite', params).then((res) => {
-          expect(Model._client.callCount).to.be.calledOnce;
+          expect(Model._client).to.be.calledOnce;
           expect(res).to.deep.equal({});
           done();
-        });
+        })
+        .catch(done);
       });
 
       after(() => {
