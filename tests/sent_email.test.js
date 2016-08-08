@@ -3,39 +3,35 @@ const expect = chai.expect;
 const chaiAsPromised = require('chai-as-promised');
 import * as sinon from 'sinon';
 import * as sinonAsPromised from 'sinon-as-promised';
-import { SentEmail } from '../src/models/sent_email';
+import { EmailTemplate } from '../src/models/email_template';
 
 chai.use(chaiAsPromised);
 
-describe('SentEmail', () => {
-  const tableName = 'SentEmails-table';
-  const messageId = 'some-message-id';
-  const recipientId = 'thatUserId';
-  const sentEmailHashKey = 'messageId';
-  const listId = 'some-list-id';
-  const status = 'sent';
-  const params = {recipientId, messageId, listId, status}
+describe('EmailTemplate', () => {
+  const tableName = 'emailTemplates-table';
+  const emailTemplateHashKey = 'userId';
+  const rangeKey = 'id';
   let tNameStub;
 
   before(() => {
-    sinon.stub(SentEmail, '_client').resolves(true);
-    tNameStub = sinon.stub(SentEmail, 'tableName', { get: () => tableName});
+    sinon.stub(EmailTemplate, '_client').resolves(true);
+    tNameStub = sinon.stub(EmailTemplate, 'tableName', { get: () => tableName});
   });
 
   describe('#hashKey', () => {
     it('returns the hash key name', () => {
-      expect(SentEmail.hashKey).to.equal(sentEmailHashKey);
+      expect(EmailTemplate.hashKey).to.equal(emailTemplateHashKey);
     });
   });
 
   describe('#rangeKey', () => {
     it('returns the range key name', () => {
-      expect(SentEmail.rangeKey).to.be.null;
+      expect(EmailTemplate.rangeKey).to.equal(rangeKey);
     });
   });
 
   after(() => {
-    SentEmail._client.restore();
+    EmailTemplate._client.restore();
     tNameStub.restore();
   });
 });
