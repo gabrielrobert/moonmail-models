@@ -3,7 +3,7 @@ import { Model } from './model';
 class EmailTemplate extends Model {
 
   static get tableName() {
-    return process.env.SENT_EMAILS_TABLE;
+    return process.env.TEMPLATES_TABLE;
   }
 
   static get hashKey() {

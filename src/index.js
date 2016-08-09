@@ -6,3 +6,4 @@ export * from './models/sent_email';
 export * from './models/sender';
 export * from './models/list';
 export * from './models/recipient';
+export * from './models/email_template';
