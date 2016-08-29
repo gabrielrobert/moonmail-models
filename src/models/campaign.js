@@ -33,7 +33,8 @@ class Campaign extends Model {
       listIds: Joi.array(),
       sentAt: Joi.number(),
       createdAt: Joi.number(),
-      status: Joi.string()
+      status: Joi.string(),
+      isUpToDate: Joi.boolean()
     });
   }
 
@@ -49,7 +50,8 @@ class Campaign extends Model {
       senderId: Joi.string(),
       sentAt: Joi.number(),
       createdAt: Joi.number(),
-      status: Joi.string()
+      status: Joi.string(),
+      isUpToDate: Joi.boolean()
     });
     return this._validateSchema(schema, campaign);
   }
