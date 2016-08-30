@@ -34,7 +34,8 @@ class Campaign extends Model {
       sentAt: Joi.number(),
       createdAt: Joi.number(),
       status: Joi.string(),
-      isUpToDate: Joi.boolean()
+      isUpToDate: Joi.boolean(),
+      template: Joi.string()
     });
   }
 
@@ -51,7 +52,8 @@ class Campaign extends Model {
       sentAt: Joi.number(),
       createdAt: Joi.number(),
       status: Joi.string(),
-      isUpToDate: Joi.boolean()
+      isUpToDate: Joi.boolean(),
+      template: Joi.string()
     });
     return this._validateSchema(schema, campaign);
   }
