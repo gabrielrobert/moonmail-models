@@ -80,6 +80,36 @@ describe('Campaign', () => {
     });
   });
 
+  describe('#schedule()', () => {
+    before(() => sinon.spy(Campaign, 'update'));
+    it('should update the campaign\'s status and scheduledAt', done => {
+      const scheduleAt = 1234;
+      Campaign.schedule(userId, campaignId, scheduleAt).then(() => {
+        const expectedParams = {scheduledAt: scheduleAt, status: 'scheduled'};
+        expect(Campaign.update).to.have.been.calledWith(expectedParams, userId, campaignId);
+        done();
+      }).catch(done);
+    });
+    after(() => Campaign.update.restore());
+  });
+
+  describe('#cancelSchedule()', () => {
+    it('should cancel campaign scheduling', done => {
+      Campaign.cancelSchedule(userId, campaignId).then(() => {
+        const args = Campaign._client.lastCall.args;
+        expect(args[0]).to.equal('update');
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.deep.property(`Key.${campaignHashKey}`, userId);
+        expect(args[1]).to.have.deep.property(`Key.${campaignRangeKey}`, campaignId);
+        expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:status', 'draft');
+        expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#status', 'status');
+        expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#scheduledAt', 'scheduledAt');
+        expect(args[1]).to.have.property('UpdateExpression', 'SET #status=:status REMOVE #scheduledAt');
+        done();
+      }).catch(done);
+    });
+  });
+
   describe('#sentLastNDays()', () => {
     it('calls the DynamoDB query method with correct params', done => {
       Campaign.sentLastNDays(userId).then(() => {

@@ -95,6 +95,31 @@ class Campaign extends Model {
     });
   }
 
+  static schedule(userId, campaignId, scheduledAt) {
+    debug('= Campaign.schedule', userId, campaignId, scheduledAt);
+    const params = {scheduledAt, status: 'scheduled'};
+    return this.update(params, userId, campaignId);
+  }
+
+  static cancelSchedule(userId, campaignId) {
+    return new Promise((resolve, reject) => {
+      debug('= Campaign.cancelSchedule', userId, campaignId);
+      const params = {
+        TableName: this.tableName,
+        Key: this._buildKey(userId, campaignId),
+        UpdateExpression: 'SET #status=:status REMOVE #scheduledAt',
+        ExpressionAttributeNames: {
+          '#status': 'status',
+          '#scheduledAt': 'scheduledAt'
+        },
+        ExpressionAttributeValues: {':status': 'draft'},
+        ReturnValues: 'ALL_NEW'
+      };
+      return this._client('update', params).then(result => resolve(result.Attributes))
+          .catch(err => reject(err));
+    });
+  }
+
   static scheduledInPast() {
     return new Promise((resolve, reject) => {
       debug('= Campaign.scheduledInPast');
