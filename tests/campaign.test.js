@@ -4,6 +4,7 @@ const chaiAsPromised = require('chai-as-promised');
 import * as sinon from 'sinon';
 import * as sinonAsPromised from 'sinon-as-promised';
 import { Campaign } from '../src/models/campaign';
+import moment from 'moment';
 
 const sinonChai = require('sinon-chai');
 chai.use(chaiAsPromised);
@@ -12,6 +13,7 @@ chai.use(sinonChai);
 describe('Campaign', () => {
   const tableName = 'Campaigns-table';
   const sentAtIndexName = 'sent-at-index';
+  const scheduledAtIndexName = 'scheduled-at-index';
   const campaignId = 'campaignId';
   const userId = 'thatUserId';
   let tNameStub;
@@ -44,6 +46,7 @@ describe('Campaign', () => {
     sinon.stub(Campaign, '_client').resolves({Items: []});
     tNameStub = sinon.stub(Campaign, 'tableName', { get: () => tableName});
     tNameStub = sinon.stub(Campaign, 'sentAtIndex', { get: () => sentAtIndexName});
+    tNameStub = sinon.stub(Campaign, 'scheduledAtIndex', { get: () => scheduledAtIndexName});
   });
 
   describe('#get', () => {
@@ -56,6 +59,24 @@ describe('Campaign', () => {
         expect(args[1]).to.have.property('TableName', tableName);
         done();
       });
+    });
+  });
+
+  describe('#scheduledInPast()', () => {
+    it('calls the DynamoDB query method with correct params', done => {
+      Campaign.scheduledInPast(userId).then(() => {
+        const args = Campaign._client.lastCall.args;
+        expect(args[0]).to.equal('scan');
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.property('IndexName', scheduledAtIndexName);
+        expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:status', 'scheduled');
+        expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#status', 'status');
+        const now = args[1].ExpressionAttributeValues[':now'];
+        const secondsAgo = moment().subtract(5, 's').unix();
+        expect(moment(now).isBetween(secondsAgo, moment().unix())).to.be.truthy;
+        expect(args[1]).to.have.property('FilterExpression', 'scheduledAt < :now and #status = :status and attribute_not_exists(sentAt)');
+        done();
+      }).catch(done);
     });
   });
 
