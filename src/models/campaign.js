@@ -33,6 +33,7 @@ class Campaign extends Model {
       listIds: Joi.array(),
       sentAt: Joi.number(),
       createdAt: Joi.number(),
+      scheduledAt: Joi.number(),
       status: Joi.string(),
       isUpToDate: Joi.boolean(),
       template: Joi.string()
@@ -51,6 +52,7 @@ class Campaign extends Model {
       senderId: Joi.string(),
       sentAt: Joi.number(),
       createdAt: Joi.number(),
+      scheduledAt: Joi.number(),
       status: Joi.string(),
       isUpToDate: Joi.boolean(),
       template: Joi.string()
@@ -77,7 +79,6 @@ class Campaign extends Model {
       return this._client('query', params).then(result => resolve(result.Count))
           .catch(err => reject(err));
     });
-
   }
 
   static sentBy(userId, options = {}) {
