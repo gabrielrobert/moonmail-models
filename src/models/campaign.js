@@ -14,6 +14,10 @@ class Campaign extends Model {
     return process.env.SENT_AT_INDEX_NAME;
   }
 
+  static get scheduledAtIndex() {
+    return process.env.SCHEDULED_AT_INDEX_NAME;
+  }
+
   static get hashKey() {
     return 'userId';
   }
@@ -87,6 +91,26 @@ class Campaign extends Model {
       const filterOptions = {filters: {status: {eq: 'sent'}}};
       const sentByOptions = deepAssign(options, filterOptions);
       return this.allBy('userId', userId, sentByOptions).then(result => resolve(result))
+          .catch(err => reject(err));
+    });
+  }
+
+  static scheduledInPast() {
+    return new Promise((resolve, reject) => {
+      debug('= Campaign.scheduledInPast');
+      const params = {
+        TableName: this.tableName,
+        IndexName: this.scheduledAtIndex,
+        FilterExpression: 'scheduledAt < :now and #status = :status and attribute_not_exists(sentAt)',
+        ExpressionAttributeValues: {
+          ':now': moment().unix(),
+          ':status': 'scheduled'
+        },
+        ExpressionAttributeNames: {
+          '#status': 'status'
+        }
+      };
+      return this._client('scan', params).then(result => resolve(result.Items))
           .catch(err => reject(err));
     });
   }
