@@ -118,9 +118,9 @@ describe('Model', () => {
     const rangeKey = 'myRange';
     const hashValue = 'some hash value';
     const rangeValue = 'some range value';
-    const lastEvaluatedKey = { id: '1234', rangeKey: '654' };
+    const item = {myKey: 1, myRange: 2, anAttribute: 'its value', someAttribute: 'some_value', anotherAttribute: 'value', another: 'value' };
+    const lastEvaluatedKey = {myKey: 1, myRange: 2};
     const nextPage = base64url.encode(JSON.stringify(lastEvaluatedKey));
-    const item = { anAttribute: 'its value', someAttribute: 'some_value', anotherAttribute: 'value', another: 'value' };
     const items = Array(5).fill().map(() => item);
     let tNameStub;
     let hashStub;
@@ -215,7 +215,7 @@ describe('Model', () => {
           expect(result).to.have.property('items');
           expect(result).to.have.property('nextPage', nextPage);
           done();
-        });
+        }).catch(done);
       });
 
       context('when the nexPage param was provided', () => {
@@ -526,46 +526,6 @@ describe('Model', () => {
         });
         done();
       });
-    });
-  });
-
-  describe('#__buildPaginationKeys', () => {
-    let hashStub;
-    let rangeStub;
-    before(() => {
-      hashStub = sinon.stub(Model, 'hashKey', { get: () => 'myHash' });
-      rangeStub = sinon.stub(Model, 'rangeKey', { get: () => 'myRange' });
-    });
-
-    context('forward pagination', () => {
-      it('returns first page with the nextKey', done => {
-        const items = [
-          {
-            myHash: '1',
-            myRange: '1'
-          },
-          {
-            myHash: '1',
-            myRange: '2'
-          }
-        ];
-        const result = {
-          Items: items,
-          LastEvaluatedKey: {
-            myHash: '1',
-            myRange: '2'
-          }
-        };
-        const paginationKey = Model._buildPaginationKey(result, { ScanIndexForward: true, Limit: 1 });
-        const nextPageHash = Model.nextPage(items[1]);
-        expect(paginationKey).to.have.property('nextPage', nextPageHash);
-        done();
-      });
-    });
-
-    after(() => {
-      hashStub.restore();
-      rangeStub.restore();
     });
   });
 

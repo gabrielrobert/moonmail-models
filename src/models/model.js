@@ -75,29 +75,26 @@ class Model {
     return fieldsOptions;
   }
 
-  static _buildLimitOptions(options, params) {
-    if (this._isPaginatingBackwards(params) && options.limit) {
-      return {Limit: options.limit + 1};
-    }
+  static _buildLimitOptions(options) {
     if (options.limit) {
       return {Limit: options.limit};
     }
     return {};
   }
 
-  static _buildPageOptions(options) {
-    const page = options.page;
+  static _buildPageOptions(options = {}) {
+    var page = options.page;
     if (page) {
       if (page.charAt(0) === '-') {
-        const prevPage = page.substring(1, page.length);
+        var prevPage = page.substring(1, page.length);
         return {
           ExclusiveStartKey: this.lastEvaluatedKey(prevPage),
-          ScanIndexForward: false
+          ScanIndexForward: !this.scanForward
         };
       } else {
         return {
           ExclusiveStartKey: this.lastEvaluatedKey(page),
-          ScanIndexForward: true
+          ScanIndexForward: this.scanForward
         };
       }
     }
@@ -178,85 +175,6 @@ class Model {
     return refined;
   }
 
-  static _buildPaginationKey(result, params, options = {}) {
-    debug('= Model._buildPaginationKey', JSON.stringify(params));
-    const paginationKey = {};
-    const items = result.Items.slice();
-    if (items && items.length > 0) {
-      const nextKey = this._buildNextKey(result, params);
-      Object.assign(paginationKey, nextKey);
-      if (!this._isFirstPage(result, params, options)) {
-        const prevKey = this._buildPrevKey(result, params, options);
-        Object.assign(paginationKey, prevKey);
-      }
-    }
-    return paginationKey;
-  }
-
-  static _buildNextKey(result, params) {
-    debug('= Model._buildPrevKey');
-    const paginationKey = {};
-    const items = result.Items.slice();
-    if (params.ScanIndexForward) {
-      if (result.LastEvaluatedKey) {
-        paginationKey.nextPage = this.nextPage(result.LastEvaluatedKey);
-      }
-    } else {
-      items.reverse();
-      const pageItem = items[items.length - 1];
-      const nextKey = this._buildKey(pageItem[this.hashKey], pageItem[this.rangeKey]);
-      paginationKey.nextPage = this.nextPage(nextKey);
-    }
-    return paginationKey;
-  }
-
-  static _buildPrevKey(result, params, options) {
-    debug('= Model._buildNextKey');
-    const paginationKey = {};
-    const items = result.Items.slice();
-    if (!this._isFirstPage(result, params, options)) {
-      if (items.length >= options.limit + 1) {
-        items.pop();
-      }
-      if (!params.ScanIndexForward) {
-        items.reverse();
-      }
-      const pageItem = items[0];
-      const prevKey = this._buildKey(pageItem[this.hashKey], pageItem[this.rangeKey]);
-      paginationKey.prevPage = this.prevPage(prevKey);
-    }
-    return paginationKey;
-  }
-
-  static _isFirstPage(result, params, options = {}) {
-    if ((!params.ScanIndexForward && result.Items.length < options.limit + 1)
-    || !options.page) {
-      return true;
-    }
-    return false;
-  }
-
-  static _isPaginatingBackwards(params) {
-    return params.ScanIndexForward === false;
-  }
-
-  static _buildResponse(result, params, options) {
-    const items = result.Items.slice();
-    const response = {
-      items: this._refineItems(items, options)
-    };
-    //paginating back
-    if (items.length >= options.limit + 1) {
-      items.pop();
-    }
-    if (!params.ScanIndexForward) {
-      items.reverse();
-    }
-    const paginationKeys = this._buildPaginationKey(result, params, options);
-    deepAssign(response, paginationKeys);
-    return response;
-  }
-
   static update(params, hash, range) {
     return new Promise((resolve, reject) => {
       debug('= Model.update', hash, range, JSON.stringify(params));
@@ -291,7 +209,7 @@ class Model {
         KeyConditionExpression: '#hkey = :hvalue',
         ExpressionAttributeNames: {'#hkey': key},
         ExpressionAttributeValues: {':hvalue': value},
-        ScanIndexForward: true
+        ScanIndexForward: this.scanForward
       };
       const dbOptions = this._buildOptions(options, params);
       deepAssign(params, dbOptions);
@@ -301,6 +219,60 @@ class Model {
       })
       .catch(err => reject(err));
     });
+  }
+
+  static _buildResponse(result, params, options) {
+    const items = result.Items;
+    if (this._isPaginatingBackwards(options)) items.reverse();
+    const response = {
+      items: this._refineItems(items, options)
+    };
+    const paginationKeys = this._buildPaginationKey(result, params, items, options);
+    deepAssign(response, paginationKeys);
+    return response;
+  }
+
+  static _buildPaginationKey(result, params, items, options) {
+    debug('= Model._buildPaginationKey', JSON.stringify(params));
+    const paginationKey = {};
+    if (items && items.length > 0) {
+      if (this._hasNextPage(result, options)) {
+        const lastItem = items[items.length - 1];
+        const nextPage = this._buildNextKey(lastItem);
+        Object.assign(paginationKey, nextPage);
+      }
+      if (!this._isFirstPage(result, params, options)) {
+        const firstItem = items[0];
+        const prevKey = this._buildPrevKey(firstItem);
+        Object.assign(paginationKey, prevKey);
+      }
+    }
+    return paginationKey;
+  }
+
+  static _hasNextPage(result, options) {
+    return !!result.LastEvaluatedKey || this._isPaginatingBackwards(options);
+  }
+
+  static _buildNextKey(lastItem) {
+    debug('= Model._buildNextKey', lastItem);
+    const lastKey = this._buildItemKey(lastItem);
+    return {nextPage: this.nextPage(lastKey)};
+  }
+
+  static _buildPrevKey(firstItem) {
+    debug('= Model._buildPrevKey', firstItem);
+    const firstItemKey = this._buildItemKey(firstItem);
+    return {prevPage: this.prevPage(firstItemKey)};
+  }
+
+  static _isFirstPage(result, params, options = {}) {
+    return !params.ExclusiveStartKey ||
+      (!!params.ExclusiveStartKey && this._isPaginatingBackwards(options) && !result.LastEvaluatedKey);
+  }
+
+  static _isPaginatingBackwards(options) {
+    return options.page && options.page.charAt(0) === '-';
   }
 
   static countBy(key, value) {
@@ -352,11 +324,12 @@ class Model {
   }
 
   static prevPage(key) {
+    debug('= prevPage', key);
     return `-${new Buffer(JSON.stringify(key)).toString('base64')}`;
   }
 
-  static nextPage(lastEvaluatedKey) {
-    return base64url.encode(JSON.stringify(lastEvaluatedKey));
+  static nextPage(key) {
+    return base64url.encode(JSON.stringify(key));
   }
 
   static lastEvaluatedKey(nextPage) {
@@ -387,6 +360,10 @@ class Model {
     return null;
   }
 
+  static get scanForward() {
+    return false;
+  }
+
   static isValid(object) {
     debug('= Model.isValid');
     return this._validateSchema(this.schema, object);
@@ -403,6 +380,15 @@ class Model {
     key[this.hashKey] = hash;
     if (this.rangeKey) {
       key[this.rangeKey] = range;
+    }
+    return key;
+  }
+
+  static _buildItemKey(item) {
+    const key = {};
+    key[this.hashKey] = item[this.hashKey];
+    if (this.rangeKey) {
+      key[this.rangeKey] = item[this.rangeKey];
     }
     return key;
   }
