@@ -3,7 +3,7 @@ import { Model } from './model';
 class Open extends Model {
 
   static get tableName() {
-    return process.env.CLICKS_TABLE;
+    return process.env.OPENS_TABLE;
   }
 
   static get hashKey() {
