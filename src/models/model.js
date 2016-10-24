@@ -131,7 +131,7 @@ class Model {
           const value = conditions[operand];
           const attrValue = `:${key}`;
           attributeValuesMapping[attrValue] = value;
-          filterExpressions.push(this._buildFilter(attrName, attrValue, this._filterOperandsMapping[operand]));
+          filterExpressions.push(this._buildFilter(attrName, attrValue, operand));
         });
       });
       dbOptions.ExpressionAttributeNames = attributeNamesMapping;
@@ -142,17 +142,18 @@ class Model {
   }
 
   static _buildFilter(key, value, operand) {
-    return [key, operand, value].join(' ');
+    return this._filterOperandsMapping[operand](key, value);
   }
 
   static get _filterOperandsMapping() {
     return {
-      eq: '=',
-      ne: '<>',
-      le: '<=',
-      lt: '<',
-      ge: '>=',
-      gt: '>'
+      eq: (key, value) => [key, '=', value].join(' '),
+      ne: (key, value) => [key, '<>', value].join(' '),
+      le: (key, value) => [key, '<=', value].join(' '),
+      lt: (key, value) => [key, '<', value].join(' '),
+      ge: (key, value) => [key, '>=', value].join(' '),
+      gt: (key, value) => [key, '>', value].join(' '),
+      bw: (key, value) => `begins_with(${key}, ${value})`
     };
   }
 
