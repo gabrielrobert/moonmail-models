@@ -480,14 +480,17 @@ describe('Model', () => {
       it('returns the correct filter expression and attribute names', done => {
         const status = 'subscribed';
         const name = 'david';
-        const options = { filters: { status: { eq: status }, name: { ne: name } } };
+        const email = 'da';
+        const options = { filters: { status: { eq: status }, name: { ne: name }, email: { bw: email } } };
         const dbOptions = Model._buildOptions(options);
-        const filterExpression = '#status = :status AND #name <> :name';
+        const filterExpression = '#status = :status AND #name <> :name AND begins_with(#email, :email)';
         expect(dbOptions).to.have.property('FilterExpression', filterExpression);
         expect(dbOptions).to.have.deep.property('ExpressionAttributeNames.#status', 'status');
         expect(dbOptions).to.have.deep.property('ExpressionAttributeNames.#name', 'name');
+        expect(dbOptions).to.have.deep.property('ExpressionAttributeNames.#email', 'email');
         expect(dbOptions).to.have.deep.property('ExpressionAttributeValues.:status', status);
         expect(dbOptions).to.have.deep.property('ExpressionAttributeValues.:name', name);
+        expect(dbOptions).to.have.deep.property('ExpressionAttributeValues.:email', email);
         done();
       });
     });
