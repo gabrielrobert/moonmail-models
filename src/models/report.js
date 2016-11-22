@@ -36,6 +36,11 @@ class Report extends Model {
     return this.increment('clicksCount', count, hash);
   }
 
+  static incrementTransientOrUndeterminedBounces(hash, count = 1) {
+    debug('= Report.incrementTransientOrUndeterminedBounces', hash);
+    return this.increment('transientOrUndeterminedBouncesCount', count, hash);
+  }
+
   static incrementSent(hash, count = 1) {
     debug('= Report.incrementSent', hash);
     return this.increment('sentCount', count, hash);
