@@ -56,6 +56,20 @@ describe('Report', () => {
     });
   });
 
+  describe('#incrementTransientOrUndeterminedBounces', () => {
+    it('calls the DynamoDB update method with correct params', (done) => {
+      Report.incrementTransientOrUndeterminedBounces(campaignId).then(() => {
+        const args = Report._client.lastCall.args;
+        expect(args[0]).to.equal('update');
+        expect(args[1]).to.have.deep.property(`Key.${Report.hashKey}`, campaignId);
+        expect(args[1]).to.have.property('TableName', tableName);
+        expect(args[1]).to.have.deep.property('AttributeUpdates.transientOrUndeterminedBouncesCount.Action', 'ADD');
+        expect(args[1]).to.have.deep.property('AttributeUpdates.transientOrUndeterminedBouncesCount.Value', 1);
+        done();
+      });
+    });
+  });
+
   describe('#incrementDeliveries', () => {
     it('calls the DynamoDB update method with correct params', (done) => {
       Report.incrementDeliveries(campaignId).then(() => {
