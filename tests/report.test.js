@@ -56,15 +56,15 @@ describe('Report', () => {
     });
   });
 
-  describe('#incrementTransientOrUndeterminedBounces', () => {
+  describe('#incrementSoftBounces', () => {
     it('calls the DynamoDB update method with correct params', (done) => {
-      Report.incrementTransientOrUndeterminedBounces(campaignId).then(() => {
+      Report.incrementSoftBounces(campaignId).then(() => {
         const args = Report._client.lastCall.args;
         expect(args[0]).to.equal('update');
         expect(args[1]).to.have.deep.property(`Key.${Report.hashKey}`, campaignId);
         expect(args[1]).to.have.property('TableName', tableName);
-        expect(args[1]).to.have.deep.property('AttributeUpdates.transientOrUndeterminedBouncesCount.Action', 'ADD');
-        expect(args[1]).to.have.deep.property('AttributeUpdates.transientOrUndeterminedBouncesCount.Value', 1);
+        expect(args[1]).to.have.deep.property('AttributeUpdates.incrementSoftBounces.Action', 'ADD');
+        expect(args[1]).to.have.deep.property('AttributeUpdates.incrementSoftBounces.Value', 1);
         done();
       });
     });
