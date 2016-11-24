@@ -63,8 +63,8 @@ describe('Report', () => {
         expect(args[0]).to.equal('update');
         expect(args[1]).to.have.deep.property(`Key.${Report.hashKey}`, campaignId);
         expect(args[1]).to.have.property('TableName', tableName);
-        expect(args[1]).to.have.deep.property('AttributeUpdates.incrementSoftBounces.Action', 'ADD');
-        expect(args[1]).to.have.deep.property('AttributeUpdates.incrementSoftBounces.Value', 1);
+        expect(args[1]).to.have.deep.property('AttributeUpdates.softBouncesCount.Action', 'ADD');
+        expect(args[1]).to.have.deep.property('AttributeUpdates.softBouncesCount.Value', 1);
         done();
       });
     });
