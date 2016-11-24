@@ -38,7 +38,7 @@ class Report extends Model {
 
   static incrementSoftBounces(hash, count = 1) {
     debug('= Report.incrementSoftBounces', hash);
-    return this.increment('incrementSoftBounces', count, hash);
+    return this.increment('softBouncesCount', count, hash);
   }
 
   static incrementSent(hash, count = 1) {
