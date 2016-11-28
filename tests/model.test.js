@@ -270,6 +270,27 @@ describe('Model', () => {
       });
     });
 
+    describe('#allBetween', () => {
+      it('calls the DynamoDB query method with correct params', (done) => {
+        const keyValue = 'id';
+        const start = 1;
+        const end = 2;
+        Model.allBetween(keyValue, start, end).then((result) => {
+          const args = Model._client.lastCall.args;
+          expect(args[0]).to.equal('query');
+          expect(args[1]).to.have.property('TableName', tableName);
+          expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue AND #rkey BETWEEN :start AND :end');
+          expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', Model.hashKey);
+          expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#rkey', Model.rangeKey);
+          expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:hvalue', keyValue);
+          expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:start', start);
+          expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:end', end);
+          expect(result).to.have.property('items');
+          done();
+        }).catch(done);
+      });
+    });
+
     describe('#countBy', () => {
       const key = 'key';
       const value = 'value';

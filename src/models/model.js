@@ -1,12 +1,10 @@
-'use strict';
-
-import { debug } from './../logger';
 import { DynamoDB } from 'aws-sdk';
 import Joi from 'joi';
 import moment from 'moment';
 import base64url from 'base64-url';
 import deepAssign from 'deep-assign';
 import omitEmpty from 'omit-empty';
+import { debug } from './../logger';
 
 const dynamoConfig = {
   region: process.env.AWS_REGION || 'us-east-1'
@@ -222,7 +220,18 @@ class Model {
     });
   }
 
-  static _buildResponse(result, params, options) {
+  static allBetween(hash, rangeStart, rangeEnd) {
+    debug('= Model.allBetween', hash, rangeStart, rangeEnd);
+    const params = {
+      TableName: this.tableName,
+      KeyConditionExpression: '#hkey = :hvalue AND #rkey BETWEEN :start AND :end',
+      ExpressionAttributeNames: {'#hkey': this.hashKey, '#rkey': this.rangeKey},
+      ExpressionAttributeValues: {':hvalue': hash, ':start': rangeStart, ':end': rangeEnd}
+    };
+    return this._client('query', params).then(result => this._buildResponse(result));
+  }
+
+  static _buildResponse(result, params = {}, options = {}) {
     const items = result.Items;
     if (this._isPaginatingBackwards(options)) items.reverse();
     const response = {
