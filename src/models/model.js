@@ -205,19 +205,51 @@ class Model {
       debug('= Model.allBy', key, value);
       const params = {
         TableName: this.tableName,
-        KeyConditionExpression: '#hkey = :hvalue',
-        ExpressionAttributeNames: {'#hkey': key},
-        ExpressionAttributeValues: {':hvalue': value},
         ScanIndexForward: this.scanForward
       };
+      const keyParams = this._buildKeyParams(value, options);
       const dbOptions = this._buildOptions(options, params);
-      deepAssign(params, dbOptions);
+      deepAssign(params, keyParams, dbOptions);
       this._client('query', params).then((result) => {
         const response = this._buildResponse(result, params, options);
         resolve(response);
       })
       .catch(err => reject(err));
     });
+  }
+
+  static _buildKeyParams(hash, options = {}) {
+    const hashKeyParams = this._buildHashKeyParams(hash, options);
+    const rangeKeyParams = this._buildRangeKeyParams(options);
+    const keyCondition = [
+      hashKeyParams.KeyConditionExpression,
+      rangeKeyParams.KeyConditionExpression
+    ].filter(item => !!item).join(' AND ');
+    const index = {IndexName: options.indexName};
+    const params = deepAssign(hashKeyParams, rangeKeyParams, {KeyConditionExpression: keyCondition}, index);
+    return params;
+  }
+
+  static _buildHashKeyParams(hash) {
+    return {
+      KeyConditionExpression: '#hkey = :hvalue',
+      ExpressionAttributeNames: {'#hkey': this.hashKey},
+      ExpressionAttributeValues: {':hvalue': hash}
+    };
+  }
+
+  static _buildRangeKeyParams(options) {
+    if (options.range) {
+      const operand = Object.keys(options.range)[0];
+      const rangeKey = Object.keys(options.range[operand])[0];
+      const rangeValue = options.range[operand][rangeKey];
+      const keyCondition = this._buildFilter('#rkey', ':rvalue', operand);
+      const attributeNames = {ExpressionAttributeNames: {'#rkey': rangeKey}};
+      const attributeValues = {ExpressionAttributeValues: {':rvalue': rangeValue}};
+      return Object.assign({}, {KeyConditionExpression: keyCondition}, attributeNames, attributeValues);
+    } else {
+      return {};
+    }
   }
 
   static allBetween(hash, rangeStart, rangeEnd) {
