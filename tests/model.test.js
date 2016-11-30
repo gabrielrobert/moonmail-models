@@ -202,16 +202,17 @@ describe('Model', () => {
     });
 
     describe('#allBy', () => {
-      const key = 'key';
       const value = 'value';
 
       it('calls the DynamoDB query method with correct params', (done) => {
-        Model.allBy(key, value).then((result) => {
+        Model.allBy(null, value).then((result) => {
           const args = Model._client.lastCall.args;
           expect(args[0]).to.equal('query');
           expect(args[1]).to.have.property('TableName', tableName);
           expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
-          expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
+            expect(args[1]).not.to.have.property('IndexName');
+          expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', Model.hashKey);
+          expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:hvalue', value);
           expect(result).to.have.property('items');
           expect(result).to.have.property('nextPage', nextPage);
           done();
@@ -221,7 +222,7 @@ describe('Model', () => {
       context('when the nexPage param was provided', () => {
         it('includes the ExclusiveStartKey in the query', (done) => {
           const page = nextPage;
-          Model.allBy(key, value, { page }).then(() => {
+          Model.allBy(null, value, { page }).then(() => {
             const args = Model._client.lastCall.args;
             expect(args[1].ExclusiveStartKey).to.deep.equal(lastEvaluatedKey);
             done();
@@ -233,12 +234,13 @@ describe('Model', () => {
         it('calls the DynamoDB get method with correct params', (done) => {
           const attributes = ['attr1', 'attr2'];
           const options = { fields: attributes.join(','), include_fields: true };
-          Model.allBy(key, value, options).then(result => {
+          Model.allBy(null, value, options).then(result => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('query');
             expect(args[1]).to.have.property('TableName', tableName);
             expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
-            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
+            expect(args[1]).not.to.have.property('IndexName');
+            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', Model.hashKey);
             expect(result).to.have.property('items');
             const dbOptions = Model._buildOptions(options);
             for (let key in dbOptions) {
@@ -253,12 +255,13 @@ describe('Model', () => {
         it('filters the result', done => {
           const fields = ['anAttribute', 'anotherAttribute'];
           const options = { fields: fields.join(','), include_fields: false };
-          Model.allBy(key, value, options).then(result => {
+          Model.allBy(null, value, options).then(result => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('query');
             expect(args[1]).to.have.property('TableName', tableName);
             expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
-            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', key);
+            expect(args[1]).not.to.have.property('IndexName');
+            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', Model.hashKey);
             expect(result).to.have.property('items');
             result.items.forEach(item => {
               fields.forEach(field => expect(item).not.to.have.property(field));
@@ -266,6 +269,46 @@ describe('Model', () => {
             done();
           })
             .catch(err => done(err));
+        });
+      });
+
+      context('when range key filter was provided', () => {
+        it('calls the DynamoDB query method with correct params', (done) => {
+          const rkey = 'rangeKey';
+          const rvalue = 'rangeValue';
+          const options = {range: {gt: {}}};
+          options.range.gt[rkey] = rvalue;
+          Model.allBy(null, value, options).then((result) => {
+            const args = Model._client.lastCall.args;
+            expect(args[0]).to.equal('query');
+            expect(args[1]).to.have.property('TableName', tableName);
+            expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue AND #rkey > :rvalue');
+            expect(args[1]).not.to.have.property('IndexName');
+            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', Model.hashKey);
+            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#rkey', rkey);
+            expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:hvalue', value);
+            expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:rvalue', rvalue);
+            expect(result).to.have.property('items');
+            expect(result).to.have.property('nextPage', nextPage);
+            done();
+          }).catch(done);
+        });
+      });
+
+      context('when index name was provided', () => {
+        it('calls the DynamoDB query method with correct params', (done) => {
+          const indexName = 'my-index';
+          const options = {indexName};
+          Model.allBy(null, value, options).then(() => {
+            const args = Model._client.lastCall.args;
+            expect(args[0]).to.equal('query');
+            expect(args[1]).to.have.property('TableName', tableName);
+            expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
+            expect(args[1]).to.have.property('IndexName', indexName);
+            expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', Model.hashKey);
+            expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:hvalue', value);
+            done();
+          }).catch(done);
         });
       });
     });
