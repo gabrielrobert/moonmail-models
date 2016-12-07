@@ -280,12 +280,12 @@ class Model {
     if (items && items.length > 0) {
       if (this._hasNextPage(result, options)) {
         const lastItem = items[items.length - 1];
-        const nextPage = this._buildNextKey(lastItem);
+        const nextPage = this._buildNextKey(lastItem, options);
         Object.assign(paginationKey, nextPage);
       }
       if (!this._isFirstPage(result, params, options)) {
         const firstItem = items[0];
-        const prevKey = this._buildPrevKey(firstItem);
+        const prevKey = this._buildPrevKey(firstItem, options);
         Object.assign(paginationKey, prevKey);
       }
     }
@@ -296,15 +296,15 @@ class Model {
     return !!result.LastEvaluatedKey || this._isPaginatingBackwards(options);
   }
 
-  static _buildNextKey(lastItem) {
+  static _buildNextKey(lastItem, options = {}) {
     debug('= Model._buildNextKey', lastItem);
-    const lastKey = this._buildItemKey(lastItem);
+    const lastKey = this._buildItemKey(lastItem, options);
     return {nextPage: this.nextPage(lastKey)};
   }
 
-  static _buildPrevKey(firstItem) {
+  static _buildPrevKey(firstItem, options = {}) {
     debug('= Model._buildPrevKey', firstItem);
-    const firstItemKey = this._buildItemKey(firstItem);
+    const firstItemKey = this._buildItemKey(firstItem, options);
     return {prevPage: this.prevPage(firstItemKey)};
   }
 
@@ -426,10 +426,18 @@ class Model {
     return key;
   }
 
-  static _buildItemKey(item) {
+  static _buildItemKey(item, options = {}) {
+    debug('= _buildItemKey', item, options);
     const key = {};
     key[this.hashKey] = item[this.hashKey];
+    if (options.range) {
+      debug('= _buildItemKey', 'Has Range');
+      const operand = Object.keys(options.range)[0];
+      const rangeKey = Object.keys(options.range[operand])[0];
+      key[rangeKey] = item[rangeKey];
+    }
     if (this.rangeKey) {
+      debug('= _buildItemKey', 'Does not have range');
       key[this.rangeKey] = item[this.rangeKey];
     }
     return key;

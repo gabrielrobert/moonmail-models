@@ -273,11 +273,12 @@ describe('Model', () => {
       });
 
       context('when range key filter was provided', () => {
+        const rkey = 'anotherAttribute';
+        const rvalue = 'value';
+        const options = {range: {gt: {}}};
+        options.range.gt[rkey] = rvalue;
+
         it('calls the DynamoDB query method with correct params', (done) => {
-          const rkey = 'rangeKey';
-          const rvalue = 'rangeValue';
-          const options = {range: {gt: {}}};
-          options.range.gt[rkey] = rvalue;
           Model.allBy(null, value, options).then((result) => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('query');
@@ -289,7 +290,16 @@ describe('Model', () => {
             expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:hvalue', value);
             expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:rvalue', rvalue);
             expect(result).to.have.property('items');
-            expect(result).to.have.property('nextPage', nextPage);
+            done();
+          }).catch(done);
+        });
+
+        it('should build next key for the given range key', done => {
+          Model.allBy(null, value, options).then((result) => {
+            const lastKey = Model.lastEvaluatedKey(result.nextPage);
+            expect(lastKey).to.have.property(rkey, item[rkey])
+            expect(lastKey).to.have.property(Model.hashKey)
+            expect(lastKey).to.have.property(Model.rangeKey)
             done();
           }).catch(done);
         });
