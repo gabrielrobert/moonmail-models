@@ -57,11 +57,11 @@ class Campaign extends Model {
       sentAt: Joi.number(),
       createdAt: Joi.number(),
       scheduledAt: Joi.number(),
-      status: Joi.string(),
+      status: Joi.string().required(),
       isUpToDate: Joi.boolean(),
       template: Joi.string()
     });
-    return this._validateSchema(schema, campaign);
+    return this._validateSchema(schema, campaign) && campaign.status === 'draft';
   }
 
   static sentLastMonth(userId) {

@@ -26,7 +26,18 @@ describe('Campaign', () => {
     listIds: ['a-list'],
     senderId: 'a-sender',
     name: 'some-name',
-    id: 'some-id'
+    id: 'some-id',
+    status: 'draft'
+  };
+  const notReadyToSentCampaign = {
+    userId: 'user-id',
+    body: 'a-body',
+    subject: 'a-subject',
+    listIds: ['a-list'],
+    senderId: 'a-sender',
+    name: 'some-name',
+    id: 'some-id',
+    status: 'pending'
   };
   const incompleteCampaign = {
     userId: 'user-id',
@@ -169,6 +180,11 @@ describe('Campaign', () => {
     });
 
     it('fails if required fields are missing', () => {
+      expect(Campaign.isValidToBeSent(incompleteCampaign)).to.be.false;
+      expect(Campaign.isValidToBeSent(incompleteCampaignWithEmptyList)).to.be.false;
+    });
+
+    it('fails if the status is not draft', () => {
       expect(Campaign.isValidToBeSent(incompleteCampaign)).to.be.false;
       expect(Campaign.isValidToBeSent(incompleteCampaignWithEmptyList)).to.be.false;
     });
