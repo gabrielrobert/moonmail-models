@@ -129,7 +129,7 @@ class Model {
           const value = conditions[operand];
           const attrValue = `:${key}`;
           attributeValuesMapping[attrValue] = value;
-          filterExpressions.push(this._buildFilter(attrName, attrValue, operand));
+          filterExpressions.push(this._buildFilter(attrName, operand, [attrValue]));
         });
       });
       dbOptions.ExpressionAttributeNames = attributeNamesMapping;
@@ -139,8 +139,8 @@ class Model {
     return dbOptions;
   }
 
-  static _buildFilter(key, value, operand) {
-    return this._filterOperandsMapping[operand](key, value);
+  static _buildFilter(key, operand, values) {
+    return this._filterOperandsMapping[operand](key, ...values);
   }
 
   static get _filterOperandsMapping() {
@@ -151,7 +151,8 @@ class Model {
       lt: (key, value) => [key, '<', value].join(' '),
       ge: (key, value) => [key, '>=', value].join(' '),
       gt: (key, value) => [key, '>', value].join(' '),
-      bw: (key, value) => `begins_with(${key}, ${value})`
+      bw: (key, value) => `begins_with(${key}, ${value})`,
+      btw: (key, ...values) => `${key} BETWEEN ${values[0]} AND ${values[1]}`
     };
   }
 
@@ -243,7 +244,7 @@ class Model {
       const operand = Object.keys(options.range)[0];
       const rangeKey = Object.keys(options.range[operand])[0];
       const rangeValue = options.range[operand][rangeKey];
-      const keyCondition = this._buildFilter('#rkey', ':rvalue', operand);
+      const keyCondition = this._buildFilter('#rkey', operand, [':rvalue']);
       const attributeNames = {ExpressionAttributeNames: {'#rkey': rangeKey}};
       const attributeValues = {ExpressionAttributeValues: {':rvalue': rangeValue}};
       return Object.assign({}, {KeyConditionExpression: keyCondition}, attributeNames, attributeValues);
