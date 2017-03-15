@@ -103,7 +103,7 @@ describe('Model', () => {
           expect(res).to.deep.equal({});
           done();
         })
-        .catch(done);
+          .catch(done);
       });
 
       after(() => {
@@ -118,8 +118,8 @@ describe('Model', () => {
     const rangeKey = 'myRange';
     const hashValue = 'some hash value';
     const rangeValue = 'some range value';
-    const item = {myKey: 1, myRange: 2, anAttribute: 'its value', someAttribute: 'some_value', anotherAttribute: 'value', another: 'value' };
-    const lastEvaluatedKey = {myKey: 1, myRange: 2};
+    const item = { myKey: 1, myRange: 2, anAttribute: 'its value', someAttribute: 'some_value', anotherAttribute: 'value', another: 'value' };
+    const lastEvaluatedKey = { myKey: 1, myRange: 2 };
     const nextPage = base64url.encode(JSON.stringify(lastEvaluatedKey));
     const items = Array(5).fill().map(() => item);
     let tNameStub;
@@ -201,6 +201,57 @@ describe('Model', () => {
       });
     });
 
+    describe('#filterBy', () => {
+      const options = {
+        limit: 10
+      };
+      const filters = {
+        attr: { eq: '1' }
+      };
+      const lastResult = {
+        Items: [{ id: 'myKey', attr: 1 }, { id: 'myKey', attr: 2 }]
+      }
+      const secondResult = Object.assign({}, lastResult, {
+        LastEvaluatedKey: {
+          id: 'third-id'
+        }
+      });
+
+      const firstResult = Object.assign({}, lastResult, {
+        LastEvaluatedKey: {
+          id: 'second-id'
+        }
+      });
+
+      before(() => {
+        sinon.stub(Model, '_getAllBy')
+          .onFirstCall()
+          .resolves(firstResult)
+          .onSecondCall()
+          .resolves(secondResult)
+          .onThirdCall()
+          .resolves(lastResult);
+      });
+
+      it('recursively filters by the given conditions', (done) => {
+        Model.filterBy(hashKey, hashValue, options, filters).then((results) => {
+          const firstCallArgs = Model._getAllBy.firstCall.args;
+          const secondCallArgs = Model._getAllBy.secondCall.args;
+          const thirdCallArgs = Model._getAllBy.thirdCall.args;
+          expect(firstCallArgs[2]).to.deep.equal(Object.assign({}, options, { filters }));
+          expect(secondCallArgs[2]).to.deep.equal(Object.assign({}, options, { filters }, { page: Model.nextPage(firstResult.LastEvaluatedKey) }));
+          expect(thirdCallArgs[2]).to.deep.equal(Object.assign({}, options, { filters }, { page: Model.nextPage(secondResult.LastEvaluatedKey) }));
+          expect(results).to.have.property('items');
+          expect(results.items.length).to.equal(6);
+          done();
+        }).catch(done);
+      });
+
+      after(() => {
+        Model._getAllBy.restore();
+      });
+    });
+
     describe('#allBy', () => {
       const value = 'value';
 
@@ -210,7 +261,7 @@ describe('Model', () => {
           expect(args[0]).to.equal('query');
           expect(args[1]).to.have.property('TableName', tableName);
           expect(args[1]).to.have.property('KeyConditionExpression', '#hkey = :hvalue');
-            expect(args[1]).not.to.have.property('IndexName');
+          expect(args[1]).not.to.have.property('IndexName');
           expect(args[1]).to.have.deep.property('ExpressionAttributeNames.#hkey', Model.hashKey);
           expect(args[1]).to.have.deep.property('ExpressionAttributeValues.:hvalue', value);
           expect(result).to.have.property('items');
@@ -275,7 +326,7 @@ describe('Model', () => {
       context('when range key filter was provided', () => {
         const rkey = 'anotherAttribute';
         const rvalue = 'value';
-        const options = {range: {gt: {}}};
+        const options = { range: { gt: {} } };
         options.range.gt[rkey] = rvalue;
 
         it('calls the DynamoDB query method with correct params', (done) => {
@@ -308,7 +359,7 @@ describe('Model', () => {
       context('when index name was provided', () => {
         it('calls the DynamoDB query method with correct params', (done) => {
           const indexName = 'my-index';
-          const options = {indexName};
+          const options = { indexName };
           Model.allBy(null, value, options).then(() => {
             const args = Model._client.lastCall.args;
             expect(args[0]).to.equal('query');
