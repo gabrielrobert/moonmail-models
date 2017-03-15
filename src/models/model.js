@@ -26,18 +26,18 @@ class Model {
 
   static saveAll(items) {
     debug('= Model.saveAll', items);
-    const itemsParams = {RequestItems: {}};
+    const itemsParams = { RequestItems: {} };
     itemsParams.RequestItems[this.tableName] = items.map(item => {
-      return {PutRequest: {Item: omitEmpty(item)}};
+      return { PutRequest: { Item: omitEmpty(item) } };
     });
     return this._client('batchWrite', itemsParams);
   }
 
   static deleteAll(keys) {
     debug('= Model.deleteAll', keys);
-    const itemsParams = {RequestItems: {}};
+    const itemsParams = { RequestItems: {} };
     itemsParams.RequestItems[this.tableName] = keys.map(key => {
-      return {DeleteRequest: {Key: this._buildKey(key[0], key[1])}};
+      return { DeleteRequest: { Key: this._buildKey(key[0], key[1]) } };
     });
     return this._client('batchWrite', itemsParams);
   }
@@ -58,7 +58,7 @@ class Model {
           resolve({});
         }
       })
-      .catch(err => reject(err));
+        .catch(err => reject(err));
     });
   }
 
@@ -75,7 +75,7 @@ class Model {
 
   static _buildLimitOptions(options) {
     if (options.limit) {
-      return {Limit: options.limit};
+      return { Limit: options.limit };
     }
     return {};
   }
@@ -185,7 +185,7 @@ class Model {
         ReturnValues: 'ALL_NEW'
       };
       this._client('update', dbParams).then(result => resolve(result.Attributes))
-      .catch(err => reject(err));
+        .catch(err => reject(err));
     });
   }
 
@@ -197,25 +197,66 @@ class Model {
         Key: this._buildKey(hash, range)
       };
       this._client('delete', params).then(() => resolve(true))
-      .catch(err => reject(err));
+        .catch(err => reject(err));
     });
+  }
+
+  static filterBy(key, value, opts, filters) {
+    debug('= Model.filterBy', key, value, opts, filters);
+    const options = omitEmpty(Object.assign({}, opts, { filters }));
+    return this._getAllBy(key, value, options)
+      .then((resultSet) => this._recursiveFilterBy(key, value, options, 40, resultSet))
+      .then((resultSet) => {
+        const size = Math.min(options.limit, resultSet.Items.length);
+        const toReturn = Object.assign({}, resultSet, { Items: resultSet.Items.slice(0, size) });
+        // Build response
+        const params = this._buildDynamodDBParams(key, value, options);
+        const response = this._buildResponse(toReturn, params, options);
+        return Promise.resolve(response);
+      }).catch(err => Promise.reject(err));
+  }
+
+
+  static _recursiveFilterBy(key, value, options, iterations, results) {
+    debug('= Model._recursiveFilterBy', key, value, options, iterations, results);
+    if (!results.LastEvaluatedKey) return Promise.resolve(results);
+    if (results.Items.length >= options.limit) return Promise.resolve(results);
+    if (iterations <= 0) return Promise.resolve(results);
+    return this._getAllBy(key, value, Object.assign({}, options, { page: this.nextPage(results.LastEvaluatedKey) }))
+      .then((resultSet) => {
+        const aggregatedResults = Object.assign({}, resultSet,
+          { Items: [...results.Items, ...resultSet.Items] });
+        return this._recursiveFilterBy(key, value, options, iterations - 1, aggregatedResults);
+      });
+  }
+
+
+  static _getAllBy(key, value, options = {}) {
+    return new Promise((resolve) => {
+      const params = this._buildDynamodDBParams(key, value, options);
+      debug('= Model._getAllBy', key, value, options);
+      resolve(this._client('query', params));
+    });
+  }
+
+  static _buildDynamodDBParams(key, value, options) {
+    const params = {
+      TableName: this.tableName,
+      ScanIndexForward: this.scanForward
+    };
+    const keyParams = this._buildKeyParams(value, options);
+    const dbOptions = this._buildOptions(options, params);
+    return deepAssign(params, keyParams, dbOptions);
   }
 
   static allBy(key, value, options = {}) {
     return new Promise((resolve, reject) => {
       debug('= Model.allBy', key, value);
-      const params = {
-        TableName: this.tableName,
-        ScanIndexForward: this.scanForward
-      };
-      const keyParams = this._buildKeyParams(value, options);
-      const dbOptions = this._buildOptions(options, params);
-      deepAssign(params, keyParams, dbOptions);
-      this._client('query', params).then((result) => {
+      const params = this._buildDynamodDBParams(key, value, options);
+      this._getAllBy(key, value, options).then((result) => {
         const response = this._buildResponse(result, params, options);
         resolve(response);
-      })
-      .catch(err => reject(err));
+      }).catch(err => reject(err));
     });
   }
 
@@ -226,16 +267,16 @@ class Model {
       hashKeyParams.KeyConditionExpression,
       rangeKeyParams.KeyConditionExpression
     ].filter(item => !!item).join(' AND ');
-    const index = {IndexName: options.indexName};
-    const params = deepAssign(hashKeyParams, rangeKeyParams, {KeyConditionExpression: keyCondition}, index);
+    const index = { IndexName: options.indexName };
+    const params = deepAssign(hashKeyParams, rangeKeyParams, { KeyConditionExpression: keyCondition }, index);
     return params;
   }
 
   static _buildHashKeyParams(hash) {
     return {
       KeyConditionExpression: '#hkey = :hvalue',
-      ExpressionAttributeNames: {'#hkey': this.hashKey},
-      ExpressionAttributeValues: {':hvalue': hash}
+      ExpressionAttributeNames: { '#hkey': this.hashKey },
+      ExpressionAttributeValues: { ':hvalue': hash }
     };
   }
 
@@ -245,9 +286,9 @@ class Model {
       const rangeKey = Object.keys(options.range[operand])[0];
       const rangeValue = options.range[operand][rangeKey];
       const keyCondition = this._buildFilter('#rkey', operand, [':rvalue']);
-      const attributeNames = {ExpressionAttributeNames: {'#rkey': rangeKey}};
-      const attributeValues = {ExpressionAttributeValues: {':rvalue': rangeValue}};
-      return Object.assign({}, {KeyConditionExpression: keyCondition}, attributeNames, attributeValues);
+      const attributeNames = { ExpressionAttributeNames: { '#rkey': rangeKey } };
+      const attributeValues = { ExpressionAttributeValues: { ':rvalue': rangeValue } };
+      return Object.assign({}, { KeyConditionExpression: keyCondition }, attributeNames, attributeValues);
     } else {
       return {};
     }
@@ -258,8 +299,8 @@ class Model {
     const params = {
       TableName: this.tableName,
       KeyConditionExpression: '#hkey = :hvalue AND #rkey BETWEEN :start AND :end',
-      ExpressionAttributeNames: {'#hkey': this.hashKey, '#rkey': this.rangeKey},
-      ExpressionAttributeValues: {':hvalue': hash, ':start': rangeStart, ':end': rangeEnd}
+      ExpressionAttributeNames: { '#hkey': this.hashKey, '#rkey': this.rangeKey },
+      ExpressionAttributeValues: { ':hvalue': hash, ':start': rangeStart, ':end': rangeEnd }
     };
     return this._client('query', params).then(result => this._buildResponse(result));
   }
@@ -300,13 +341,13 @@ class Model {
   static _buildNextKey(lastItem, options = {}) {
     debug('= Model._buildNextKey', lastItem);
     const lastKey = this._buildItemKey(lastItem, options);
-    return {nextPage: this.nextPage(lastKey)};
+    return { nextPage: this.nextPage(lastKey) };
   }
 
   static _buildPrevKey(firstItem, options = {}) {
     debug('= Model._buildPrevKey', firstItem);
     const firstItemKey = this._buildItemKey(firstItem, options);
-    return {prevPage: this.prevPage(firstItemKey)};
+    return { prevPage: this.prevPage(firstItemKey) };
   }
 
   static _isFirstPage(result, params, options = {}) {
@@ -324,14 +365,14 @@ class Model {
       const params = {
         TableName: this.tableName,
         KeyConditionExpression: '#hkey = :hvalue',
-        ExpressionAttributeNames: {'#hkey': key},
-        ExpressionAttributeValues: {':hvalue': value},
+        ExpressionAttributeNames: { '#hkey': key },
+        ExpressionAttributeValues: { ':hvalue': value },
         Select: 'COUNT'
       };
       this._client('query', params).then((result) => {
         resolve(result.Count);
       })
-      .catch(err => reject(err));
+        .catch(err => reject(err));
     });
   }
 
@@ -468,7 +509,7 @@ class Model {
           debug('= Model._client', method, 'Success');
           if (data.UnprocessedItems && Object.keys(data.UnprocessedItems).length > 0 && retries < this.maxRetries) {
             debug('= Model._client', method, 'Some unprocessed items... Retrying', JSON.stringify(data));
-            const retryParams = {RequestItems: data.UnprocessedItems};
+            const retryParams = { RequestItems: data.UnprocessedItems };
             const delay = this.retryDelay * Math.pow(2, retries);
             setTimeout(() => {
               resolve(this._client(method, retryParams, retries + 1));
@@ -486,6 +527,6 @@ class Model {
     return db;
   }
 
- }
+}
 
 module.exports.Model = Model;
