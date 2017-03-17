@@ -275,7 +275,7 @@ class Model {
   static _buildHashKeyParams(key, hash) {
     return {
       KeyConditionExpression: '#hkey = :hvalue',
-      ExpressionAttributeNames: { '#hkey': key },
+      ExpressionAttributeNames: { '#hkey': key || this.hashKey},
       ExpressionAttributeValues: { ':hvalue': hash }
     };
   }
