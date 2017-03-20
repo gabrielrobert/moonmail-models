@@ -244,7 +244,7 @@ class Model {
       TableName: this.tableName,
       ScanIndexForward: this.scanForward
     };
-    const keyParams = this._buildKeyParams(value, options);
+    const keyParams = this._buildKeyParams(key, value, options);
     const dbOptions = this._buildOptions(options, params);
     return deepAssign(params, keyParams, dbOptions);
   }
@@ -260,8 +260,8 @@ class Model {
     });
   }
 
-  static _buildKeyParams(hash, options = {}) {
-    const hashKeyParams = this._buildHashKeyParams(hash, options);
+  static _buildKeyParams(key, hash, options = {}) {
+    const hashKeyParams = this._buildHashKeyParams(key, hash, options);
     const rangeKeyParams = this._buildRangeKeyParams(options);
     const keyCondition = [
       hashKeyParams.KeyConditionExpression,
@@ -272,10 +272,10 @@ class Model {
     return params;
   }
 
-  static _buildHashKeyParams(hash) {
+  static _buildHashKeyParams(key, hash) {
     return {
       KeyConditionExpression: '#hkey = :hvalue',
-      ExpressionAttributeNames: { '#hkey': this.hashKey },
+      ExpressionAttributeNames: { '#hkey': key || this.hashKey},
       ExpressionAttributeValues: { ':hvalue': hash }
     };
   }
