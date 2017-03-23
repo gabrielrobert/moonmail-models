@@ -233,6 +233,13 @@ class Model {
 
   static _getAllBy(key, value, options = {}) {
     return new Promise((resolve) => {
+      // If we are in presence of a query for GSI
+      // then we need to setup propagate the GSI hashKey
+      // to build the pagination key. Range key is already
+      // provided in options.range.
+      if (key !== this.hashKey) {
+        options.gsiHashKey = key;
+      }
       const params = this._buildDynamodDBParams(key, value, options);
       debug('= Model._getAllBy', key, value, options);
       resolve(this._client('query', params));
@@ -275,7 +282,7 @@ class Model {
   static _buildHashKeyParams(key, hash) {
     return {
       KeyConditionExpression: '#hkey = :hvalue',
-      ExpressionAttributeNames: { '#hkey': key || this.hashKey},
+      ExpressionAttributeNames: { '#hkey': key || this.hashKey },
       ExpressionAttributeValues: { ':hvalue': hash }
     };
   }
@@ -471,6 +478,9 @@ class Model {
   static _buildItemKey(item, options = {}) {
     debug('= _buildItemKey', item, options);
     const key = {};
+    // Workaround to solve GSI key format
+    if (options.gsiHashKey) key[options.gsiHashKey] = item[options.gsiHashKey];
+    //
     key[this.hashKey] = item[this.hashKey];
     if (options.range) {
       debug('= _buildItemKey', 'Has Range');
