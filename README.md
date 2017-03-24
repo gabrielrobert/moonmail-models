@@ -24,7 +24,7 @@ Contributions are always welcome! If you'd like to collaborate with us, take int
 Feel free to <a href="mailto:hi@microapps.com">contact us</a> if you have any question!
 
 ## Credits
-Developed by [microapps](http://microapps.com/?utm_source=moonmail-models-readme&utm_medium=click&utm_campaign=github) Used in [MoonMail](https://moonmail.io/?utm_source=moonmail-models-readme&utm_medium=click&utm_campaign=github) 
+Developed by [microapps](http://microapps.com/?utm_source=moonmail-models-readme&utm_medium=click&utm_campaign=github), used in [MoonMail](https://moonmail.io/?utm_source=moonmail-models-readme&utm_medium=click&utm_campaign=github) 
 
 ## License
 [MoonMail](https://moonmail.io/?utm_source=moonmail-models-readme&utm_medium=click&utm_campaign=github) is available under the MIT license. See the LICENSE file for more info.
