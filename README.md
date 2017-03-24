@@ -1,6 +1,6 @@
 # MoonMail Models
 
-[MoonMail](https://github.com/microapps/MoonMail), powerful email marketing tool, built on Serverless Framework allows you to deliver campaigns over Amazon’s cloud network. MoonMail Models is a nodejs package that provides the data persistance layer, sitting on top of DynamoDB.
+[MoonMail](https://moonmail.io) Models is a nodejs package that provides the data persistance layer, sitting on top of DynamoDB. Due to the success of this project, which was inintially intended to be exclusive for the MoonMail data storage party, the MoonMail team is already working on an abstraction of this module to be project agnostic so anyone can use it for any data-DynamoDB based project.
 
 --
 
@@ -28,8 +28,8 @@ Feel free to <a href="mailto:hi@microapps.com">contact us</a> if you have any qu
 
 --
 
-### Credits
-Developed by [microapps] (http://microapps.com/)
+## Credits
+Developed by [microapps](http://microapps.com/?utm_source=moonmail-models-readme&utm_medium=click&utm_campaign=github) Used in [MoonMail](https://moonmail.io/?utm_source=moonmail-models-readme&utm_medium=click&utm_campaign=github) 
 
 --
 ## License
