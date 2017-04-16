@@ -462,7 +462,7 @@ class Model {
 
   static _validateSchema(schema, model) {
     if (!this.schema) return true;
-    const result = Joi.validate(model, schema);
+    const result = Joi.validate(model, schema, { allowUnknown: true });
     return !result.error;
   }
 
